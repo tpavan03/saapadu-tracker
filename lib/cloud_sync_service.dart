@@ -40,8 +40,7 @@ class CloudSyncService extends ChangeNotifier {
 
   bool get configured =>
       _url.trim().isNotEmpty &&
-      _publishableKey.trim().isNotEmpty &&
-      _allowedEmail.trim().isNotEmpty;
+      _publishableKey.trim().isNotEmpty;
 
   SupabaseClient? get _client => configured ? Supabase.instance.client : null;
   User? get user => _client?.auth.currentUser;
@@ -49,7 +48,8 @@ class CloudSyncService extends ChangeNotifier {
   bool get signedIn => user != null;
   bool get authorized =>
       signedIn &&
-      email?.trim().toLowerCase() == _allowedEmail.trim().toLowerCase();
+      (_allowedEmail.trim().isEmpty ||
+          email?.trim().toLowerCase() == _allowedEmail.trim().toLowerCase());
 
   Future<void> initialize() async {
     if (!configured) {

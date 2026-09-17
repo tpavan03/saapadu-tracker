@@ -39,7 +39,7 @@ class LoginScreen extends StatelessWidget {
                             style: Theme.of(context).textTheme.displaySmall),
                         const SizedBox(height: 14),
                         const Text(
-                          'Sign in with the approved Google account. Your browser keeps an offline copy and syncs the same diary, weight history, workouts, and targets to the cloud.',
+                          'Sign in with Google to start your own private diary. Your browser keeps an offline copy and syncs your meals, weight history, workouts, and targets to your account.',
                           style: TextStyle(color: AppColors.muted, height: 1.5),
                         ),
                         const SizedBox(height: 26),
@@ -50,7 +50,7 @@ class LoginScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
                         const Text(
-                          'Only the configured account can synchronize this private tracker.',
+                          'Each Google account gets its own onboarding and cloud history.',
                           textAlign: TextAlign.center,
                           style:
                               TextStyle(fontSize: 11, color: AppColors.muted),

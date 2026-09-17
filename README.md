@@ -64,8 +64,7 @@ The app is useful without an account. To retain the diary across browsers and de
 ```bash
 flutter build web --release \
   --dart-define=SUPABASE_URL=https://PROJECT_REF.supabase.co \
-  --dart-define=SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY \
-  --dart-define=ALLOWED_EMAIL=YOUR_GOOGLE_EMAIL
+  --dart-define=SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
 ```
 
 See [`docs/cloud_setup.md`](docs/cloud_setup.md) and [`supabase/migrations/202609170001_cloud_backup.sql`](supabase/migrations/202609170001_cloud_backup.sql). Never place a Supabase secret or `service_role` key in a client build.

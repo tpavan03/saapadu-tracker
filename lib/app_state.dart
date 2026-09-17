@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -69,7 +70,10 @@ class AppState extends ChangeNotifier {
     }
     ready = true;
     notifyListeners();
-    if (cloud.authorized) await _reconcileCloud();
+    if (cloud.authorized) {
+      await _switchCloudUserIfNeeded();
+      await _reconcileCloud();
+    }
   }
 
   List<FoodItem> get allFoods => [...customFoods, ...foods];
@@ -429,6 +433,39 @@ class AppState extends ChangeNotifier {
 
   void _onCloudChanged() {
     notifyListeners();
+    if (ready && cloud.authorized) {
+      unawaited(_switchCloudUserIfNeeded());
+    }
+  }
+
+  Future<void> _switchCloudUserIfNeeded() async {
+    final userId = cloud.user?.id;
+    if (userId == null || _prefs == null) return;
+    final storedUserId = _prefs!.getString('cloud_user_id');
+    if (storedUserId != null && storedUserId != userId) {
+      // A second account on the same browser must never inherit the first
+      // account's local diary while its cloud backup is being restored.
+      profile = null;
+      customFoods = [];
+      logs = [];
+      workouts = [];
+      weights = [];
+      wellness = {};
+      fasting = const FastingState();
+      selectedDate = DateTime.now();
+      await Future.wait([
+        _prefs!.remove('profile'),
+        _prefs!.remove('custom_foods'),
+        _prefs!.remove('food_logs'),
+        _prefs!.remove('workouts'),
+        _prefs!.remove('weights'),
+        _prefs!.remove('wellness'),
+        _prefs!.remove('fasting'),
+      ]);
+    }
+    await _prefs!.setString('cloud_user_id', userId);
+    notifyListeners();
+    await _reconcileCloud();
   }
 
   Future<void> _reconcileCloud() async {

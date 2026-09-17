@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'saapadu-v1.2.3';
+const CACHE_NAME = 'saapadu-v1.2.4';
 const CORE = [
   '/',
   '/index.html',

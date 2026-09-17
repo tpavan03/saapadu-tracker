@@ -17,8 +17,6 @@ create policy "owner can read backup"
 on public.user_backups for select to authenticated
 using (
   (select auth.uid()) = user_id
-  and lower(coalesce((select auth.jwt()->>'email'), '')) =
-      'thokalapavan.pp@gmail.com'
 );
 
 drop policy if exists "owner can create backup" on public.user_backups;
@@ -26,8 +24,6 @@ create policy "owner can create backup"
 on public.user_backups for insert to authenticated
 with check (
   (select auth.uid()) = user_id
-  and lower(coalesce((select auth.jwt()->>'email'), '')) =
-      'thokalapavan.pp@gmail.com'
 );
 
 drop policy if exists "owner can update backup" on public.user_backups;
@@ -35,12 +31,7 @@ create policy "owner can update backup"
 on public.user_backups for update to authenticated
 using (
   (select auth.uid()) = user_id
-  and lower(coalesce((select auth.jwt()->>'email'), '')) =
-      'thokalapavan.pp@gmail.com'
 )
 with check (
   (select auth.uid()) = user_id
-  and lower(coalesce((select auth.jwt()->>'email'), '')) =
-      'thokalapavan.pp@gmail.com'
 );
-
