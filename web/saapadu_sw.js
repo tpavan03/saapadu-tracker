@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'saapadu-v1.1.0';
+const CACHE_NAME = 'saapadu-v1.2.0';
 const CORE = [
   '/',
   '/index.html',
@@ -58,4 +58,3 @@ self.addEventListener('fetch', (event) => {
     )
   );
 });
-
