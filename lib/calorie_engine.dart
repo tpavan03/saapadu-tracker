@@ -129,12 +129,22 @@ class CalorieEngine {
     final targetSupportsGoal = direction == 0 ||
         (direction < 0 && targetDelta > 0) ||
         (direction > 0 && targetDelta < 0);
-    final rawProjectedRate = targetSupportsGoal && direction != 0
-        ? targetDelta.abs() * 7 / 7700
+    // A custom target should produce its own forecast. Keep the exact implied
+    // rate visible, while the safety flag and earliestSafeDate still protect
+    // against an aggressive deficit. The automatic recommendation remains
+    // capped at [maxAutomaticWeeklyLossKg].
+    final rawProjectedRate = hasManualTarget
+        ? targetSupportsGoal && direction != 0
+            ? targetDelta.abs() * 7 / 7700
+            : 0.0
         : plannedWeeklyChange;
-    final projectedRate = direction < 0
-        ? math.min(rawProjectedRate, maxAutomaticWeeklyLossKg)
-        : rawProjectedRate;
+    final projectedRate = rawProjectedRate;
+    final customTargetUnsafe = hasManualTarget &&
+        ((direction < 0 && rawProjectedRate > maxAutomaticWeeklyLossKg) ||
+            !targetSupportsGoal && direction != 0);
+    final finalSafety = customTargetUnsafe
+        ? GoalPlanSafety.unsafe
+        : safety;
     final projectedGoalDate = direction == 0
         ? referenceDate
         : projectedRate > 0
@@ -148,7 +158,7 @@ class CalorieEngine {
       effectiveTarget: effectiveTarget,
       plannedWeeklyRateKg: plannedWeeklyChange,
       requiredWeeklyRateKg: requiredWeeklyRate,
-      safety: safety,
+      safety: finalSafety,
       earliestSafeDate: direction < 0
           ? referenceDate.add(
               Duration(

@@ -142,16 +142,28 @@ class _PlanScreenState extends State<PlanScreen> {
                                     style:
                                         TextStyle(fontWeight: FontWeight.w800)),
                               ),
-                              Text('${pace.toStringAsFixed(2)} kg/week'),
+                              Text(useCustomTarget
+                                  ? '${recommendation.projectedWeeklyRateKg.toStringAsFixed(2)} kg/week'
+                                  : '${pace.toStringAsFixed(2)} kg/week'),
                             ]),
-                            Slider(
-                              value: pace,
-                              min: .25,
-                              max: .75,
-                              divisions: 2,
-                              onChanged: (value) =>
-                                  setState(() => pace = value),
-                            ),
+                            if (useCustomTarget)
+                              const Padding(
+                                padding: EdgeInsets.only(top: 8),
+                                child: Text(
+                                  'Calculated from your custom calorie target. Change that number to change the forecast date.',
+                                  style: TextStyle(color: AppColors.muted),
+                                ),
+                              )
+                            else
+                              Slider(
+                                value: pace,
+                                min: .10,
+                                max: CalorieEngine.maxAutomaticWeeklyLossKg,
+                                divisions: 8,
+                                label: '${pace.toStringAsFixed(2)} kg/week',
+                                onChanged: (value) =>
+                                    setState(() => pace = value),
+                              ),
                           ] else
                             ListTile(
                               contentPadding: EdgeInsets.zero,
@@ -201,7 +213,9 @@ class _PlanScreenState extends State<PlanScreen> {
                         Text(
                           mode == _PlanMode.date && required != null
                               ? 'Your selected date requires about ${required.toStringAsFixed(2)} kg per week.'
-                              : 'Based on ${plan.plannedWeeklyRateKg.toStringAsFixed(2)} kg per week and your current body data.',
+                              : plan.usesManualTarget
+                                  ? 'Your custom target implies ${plan.projectedWeeklyRateKg.toStringAsFixed(2)} kg per week from your current maintenance estimate.'
+                                  : 'Based on ${plan.plannedWeeklyRateKg.toStringAsFixed(2)} kg per week and your current body data.',
                           style: TextStyle(
                               color: Colors.white.withValues(alpha: .68)),
                         ),
@@ -225,7 +239,20 @@ class _PlanScreenState extends State<PlanScreen> {
                                 fontSize: 12),
                           ),
                         ],
-                        if (!plan.isSafe && plan.earliestSafeDate != null) ...[
+                        if (plan.usesManualTarget && !plan.targetSupportsGoal) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.terracotta.withValues(alpha: .22),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Text(
+                              'This custom target is at or above your maintenance estimate, so it will not move you toward the selected goal. Lower the target or choose maintenance as your goal.',
+                              style: TextStyle(color: Colors.white, fontSize: 12),
+                            ),
+                          ),
+                        ] else if (!plan.isSafe && plan.earliestSafeDate != null) ...[
                           const SizedBox(height: 12),
                           Container(
                             padding: const EdgeInsets.all(12),
@@ -235,7 +262,9 @@ class _PlanScreenState extends State<PlanScreen> {
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: Text(
-                              'That date is faster than the automatic plan limit. The earliest supported date is ${DateFormat('d MMMM y').format(plan.earliestSafeDate!)}; the calorie recommendation uses the guarded pace.',
+                              plan.usesManualTarget
+                                  ? 'This custom target implies ${plan.projectedWeeklyRateKg.toStringAsFixed(2)} kg per week, above the automatic safety limit. The earliest supported date is ${DateFormat('d MMMM y').format(plan.earliestSafeDate!)}.'
+                                  : 'That date is faster than the automatic plan limit. The earliest supported date is ${DateFormat('d MMMM y').format(plan.earliestSafeDate!)}; the calorie recommendation uses the guarded pace.',
                               style: const TextStyle(
                                   color: Colors.white, fontSize: 12),
                             ),

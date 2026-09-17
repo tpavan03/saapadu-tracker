@@ -240,6 +240,20 @@ void main() {
         greaterThan(0),
       );
     });
+
+    test('keeps an aggressive custom forecast exact while flagging it unsafe', () {
+      final base = profile(currentWeightKg: 80, goalWeightKg: 70);
+      final maintenance = CalorieEngine.maintenance(base, today: referenceDate);
+      final result = CalorieEngine.planRecommendation(
+        base.copyWith(manualCalorieTarget: (maintenance - 1100).round()),
+        today: referenceDate,
+      );
+
+      expect(result.projectedWeeklyRateKg, closeTo(1.0, .01));
+      expect(result.projectedGoalDate, DateTime(2025, 8, 10));
+      expect(result.isSafe, isFalse);
+      expect(result.earliestSafeDate, DateTime(2025, 8, 18));
+    });
   });
 
   group('profile plan persistence', () {

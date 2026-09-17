@@ -130,8 +130,8 @@ class ProgressScreen extends StatelessWidget {
                       const SizedBox(height: 12),
                       const Text(
                           'BMI is a screening measure. Body composition and South Asian metabolic risk can make the full picture different.',
-                          style:
-                              TextStyle(fontSize: 12, color: AppColors.muted)),
+                          style: TextStyle(
+                              fontSize: 12, color: AppColors.muted)),
                     ]),
               ))),
           SizedBox(
@@ -149,14 +149,16 @@ class ProgressScreen extends StatelessWidget {
                               letterSpacing: 1,
                               color: AppColors.muted)),
                       const SizedBox(height: 11),
-                      Text('${p.weeklyGoalKg.toStringAsFixed(2)} kg / week',
+                      Text('${state.planRecommendation.projectedWeeklyRateKg.toStringAsFixed(2)} kg / week',
                           style: const TextStyle(
                               fontSize: 23, fontWeight: FontWeight.w900)),
                       const SizedBox(height: 10),
-                      const Text(
-                          'Daily scale changes are mostly water. Compare weekly averages and adjust after 2–3 consistent weeks.',
-                          style:
-                              TextStyle(fontSize: 12, color: AppColors.muted)),
+                      Text(
+                          state.planRecommendation.usesManualTarget
+                              ? 'Calculated from your custom calorie target. Change that target to move the forecast date.'
+                              : 'Daily scale changes are mostly water. Compare weekly averages and adjust after 2–3 consistent weeks.',
+                          style: const TextStyle(
+                              fontSize: 12, color: AppColors.muted)),
                     ]),
               ))),
         ]);
