@@ -223,6 +223,22 @@ void main() {
       expect(result.projectedGoalDate, DateTime(2025, 10, 19));
     });
 
+    test('different valid custom targets produce different completion dates', () {
+      final base = profile(currentWeightKg: 80, goalWeightKg: 70);
+      final slower = CalorieEngine.planRecommendation(
+        base.copyWith(manualCalorieTarget: 2000),
+        today: referenceDate,
+      );
+      final faster = CalorieEngine.planRecommendation(
+        base.copyWith(manualCalorieTarget: 1800),
+        today: referenceDate,
+      );
+
+      expect(slower.projectedGoalDate, isNot(faster.projectedGoalDate));
+      expect(faster.projectedWeeklyRateKg,
+          greaterThan(slower.projectedWeeklyRateKg));
+    });
+
     test('recalculates the projected date from a new weigh-in', () {
       final lighter = profile(currentWeightKg: 75, goalWeightKg: 70,
           manualCalorieTarget: 1800);
