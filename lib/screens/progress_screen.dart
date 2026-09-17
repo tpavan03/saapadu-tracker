@@ -192,6 +192,7 @@ class ProgressScreen extends StatelessWidget {
           )));
 
   Widget _planCard(BuildContext context) {
+    final profile = state.profile!;
     final plan = state.planRecommendation;
     final date = plan.projectedGoalDate;
     return Card(
@@ -212,7 +213,10 @@ class ProgressScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Goal plan',
+                Text(
+                    date == null
+                        ? 'Goal plan'
+                        : 'You will reach ${profile.goalWeightKg.toStringAsFixed(1)} kg by ${DateFormat('d MMMM y').format(date)}',
                     style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 3),
                 Text(
@@ -224,7 +228,7 @@ class ProgressScreen extends StatelessWidget {
                 if (date != null) ...[
                   const SizedBox(height: 4),
                   Text(
-                    'Estimated completion: ${DateFormat('d MMMM y').format(date)}',
+                    'Estimated completion: ${DateFormat('d MMMM y').format(date)} • updates after each weigh-in',
                     style: const TextStyle(
                         color: AppColors.forest,
                         fontSize: 12,

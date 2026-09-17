@@ -39,6 +39,15 @@ class TodayScreen extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text('Namaskaram, $firstName',
                         style: Theme.of(context).textTheme.headlineMedium),
+                    if (state.projectedGoalDate != null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'You will reach ${p.goalWeightKg.toStringAsFixed(1)} kg by ${DateFormat('d MMMM y').format(state.projectedGoalDate!)}',
+                        style: const TextStyle(
+                            color: AppColors.forest,
+                            fontWeight: FontWeight.w800),
+                      ),
+                    ],
                   ],
                 ),
               ),
