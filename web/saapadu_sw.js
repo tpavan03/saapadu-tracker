@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'saapadu-v1.2.2';
+const CACHE_NAME = 'saapadu-v1.2.3';
 const CORE = [
   '/',
   '/index.html',
@@ -46,15 +46,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // App code must revalidate on every reload so a release is not hidden by
+  // an older cache. Other assets still fall back to the offline copy first.
+  const networkFirst = /\/(main\.dart\.js|flutter_bootstrap\.js|flutter\.js)$/.test(requestUrl.pathname);
   event.respondWith(
-    caches.match(event.request).then((cached) => cached ||
-      fetch(event.request).then((response) => {
-        if (response.ok) {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-        }
-        return response;
-      })
-    )
+    networkFirst
+      ? fetch(event.request).then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return response;
+        }).catch(() => caches.match(event.request))
+      : caches.match(event.request).then((cached) => cached ||
+          fetch(event.request).then((response) => {
+            if (response.ok) {
+              const copy = response.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+            }
+            return response;
+          })
+        )
   );
 });

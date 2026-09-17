@@ -3,7 +3,7 @@
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/saapadu_sw.js', { updateViaCache: 'none' }).catch((error) => {
+    navigator.serviceWorker.register('/saapadu_sw.js?v=1.2.3', { updateViaCache: 'none' }).catch((error) => {
       console.warn('Offline cache could not start:', error);
     });
   });
