@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../app_state.dart';
 import '../calorie_engine.dart';
@@ -191,11 +192,8 @@ class ProgressScreen extends StatelessWidget {
           )));
 
   Widget _planCard(BuildContext context) {
-    final profile = state.profile!;
-    final planningProfile = profile.addExerciseCalories
-        ? profile.copyWith(activityLevel: 'Sedentary')
-        : profile;
-    final plan = CalorieEngine.planRecommendation(planningProfile);
+    final plan = state.planRecommendation;
+    final date = plan.projectedGoalDate;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(22),
@@ -219,10 +217,20 @@ class ProgressScreen extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   plan.usesManualTarget
-                      ? '${plan.effectiveTarget} kcal custom • ${plan.recommendedTarget} recommended'
-                      : '${plan.recommendedTarget} kcal recommended • ${plan.plannedWeeklyRateKg.toStringAsFixed(2)} kg/week',
+                      ? '${plan.effectiveTarget} kcal custom • ${plan.projectedWeeklyRateKg.toStringAsFixed(2)} kg/week'
+                      : '${plan.recommendedTarget} kcal recommended • ${plan.projectedWeeklyRateKg.toStringAsFixed(2)} kg/week',
                   style: const TextStyle(color: AppColors.muted, fontSize: 12),
                 ),
+                if (date != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Estimated completion: ${DateFormat('d MMMM y').format(date)}',
+                    style: const TextStyle(
+                        color: AppColors.forest,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700),
+                  ),
+                ],
               ],
             ),
           ),

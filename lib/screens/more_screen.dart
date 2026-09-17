@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 import '../app_state.dart';
 import '../calorie_engine.dart';
@@ -82,6 +83,13 @@ class MoreScreen extends StatelessWidget {
               child: _mini('Activity',
                   p.addExerciseCalories ? 'Daily credit' : 'Fixed')),
         ]),
+        const SizedBox(height: 14),
+        if (state.projectedGoalDate != null)
+          Text(
+            'Estimated goal date: ${DateFormat('d MMMM y').format(state.projectedGoalDate!)}',
+            style: const TextStyle(
+                color: AppColors.forest, fontWeight: FontWeight.w700),
+          ),
       ]),
     ));
   }
@@ -207,6 +215,14 @@ class MoreScreen extends StatelessWidget {
           Text('${state.baseCalorieTarget} kcal base',
               style:
                   const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+          if (state.projectedGoalDate != null) ...[
+            const SizedBox(height: 5),
+            Text(
+              'Estimated goal: ${DateFormat('d MMMM y').format(state.projectedGoalDate!)} • ${state.planRecommendation.projectedWeeklyRateKg.toStringAsFixed(2)} kg/week',
+              style: const TextStyle(
+                  color: AppColors.forest, fontWeight: FontWeight.w700),
+            ),
+          ],
           const SizedBox(height: 5),
           Text(
               state.profile!.addExerciseCalories

@@ -37,7 +37,7 @@ class TodayScreen extends StatelessWidget {
                             color: AppColors.muted,
                             fontWeight: FontWeight.w700)),
                     const SizedBox(height: 4),
-                    Text('Vanakkam, $firstName',
+                    Text('Namaskaram, $firstName',
                         style: Theme.of(context).textTheme.headlineMedium),
                   ],
                 ),
@@ -65,6 +65,8 @@ class TodayScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _suggestionCard(context),
+          const SizedBox(height: 12),
+          _mealGuideCard(context),
           const SizedBox(height: 28),
           Row(children: [
             Expanded(
@@ -160,6 +162,13 @@ class TodayScreen extends StatelessWidget {
               Text(
                   '${state.baseCalorieTarget} goal  +  ${state.exerciseCalories} activity',
                   style: TextStyle(color: Colors.white.withValues(alpha: .65))),
+              if (state.projectedGoalDate != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  'Estimated goal: ${DateFormat('d MMM y').format(state.projectedGoalDate!)}',
+                  style: TextStyle(color: Colors.white.withValues(alpha: .65)),
+                ),
+              ],
               const SizedBox(height: 20),
               FilledButton.icon(
                 style: FilledButton.styleFrom(
@@ -282,6 +291,49 @@ class TodayScreen extends StatelessWidget {
               style: const TextStyle(color: AppColors.muted, height: 1.4)),
         ])),
       ]),
+    );
+  }
+
+  Widget _mealGuideCard(BuildContext context) {
+    final proteinGap = (state.proteinTarget - state.proteinEaten).clamp(0, 999);
+    final fiberGap = (state.fiberTarget - state.fiberEaten).clamp(0, 999);
+    final remaining = state.calorieRemaining.clamp(0, 9999);
+    final suggestions = <String>[
+      if (proteinGap >= 15)
+        'Next meal: add a protein anchor such as dal, curd, eggs, paneer, fish, chicken, sprouts, or sundal.',
+      if (fiberGap >= 5)
+        'Add one vegetable poriyal or a whole fruit to move fiber toward ${state.fiberTarget.round()}g.',
+      if (remaining > 0)
+        'You have about $remaining kcal left. Build the plate with half vegetables, a protein serving, and a measured rice or roti portion.',
+    ];
+    if (suggestions.isEmpty) {
+      suggestions.add(
+          'Targets are covered well today. Keep oil portions measured and repeat meals you can sustain.');
+    }
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            const Icon(Icons.restaurant_menu_outlined, color: AppColors.forest),
+            const SizedBox(width: 10),
+            Text('Next best choices',
+                style: Theme.of(context).textTheme.titleMedium),
+          ]),
+          const SizedBox(height: 10),
+          for (final suggestion in suggestions.take(3))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 7),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('•  ', style: TextStyle(color: AppColors.leaf)),
+                Expanded(
+                    child: Text(suggestion,
+                        style: const TextStyle(
+                            color: AppColors.muted, height: 1.35))),
+              ]),
+            ),
+        ]),
+      ),
     );
   }
 

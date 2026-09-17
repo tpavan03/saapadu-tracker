@@ -205,6 +205,26 @@ class _PlanScreenState extends State<PlanScreen> {
                           style: TextStyle(
                               color: Colors.white.withValues(alpha: .68)),
                         ),
+                        if (plan.projectedGoalDate != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'At ${plan.effectiveTarget} kcal/day, estimated completion is ${DateFormat('d MMMM y').format(plan.projectedGoalDate!)} (${plan.projectedWeeklyRateKg.toStringAsFixed(2)} kg/week).',
+                            style: TextStyle(
+                                color: Colors.white.withValues(alpha: .82),
+                                fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                        if (mode == _PlanMode.date &&
+                            plan.projectedGoalDate != null &&
+                            !_sameDate(goalDate, plan.projectedGoalDate!)) ...[
+                          const SizedBox(height: 5),
+                          Text(
+                            'Your selected date is ${DateFormat('d MMMM y').format(goalDate)}. Change the calorie target or date to bring them into line.',
+                            style: TextStyle(
+                                color: Colors.white.withValues(alpha: .6),
+                                fontSize: 12),
+                          ),
+                        ],
                         if (!plan.isSafe && plan.earliestSafeDate != null) ...[
                           const SizedBox(height: 12),
                           Container(
@@ -314,4 +334,7 @@ class _PlanScreenState extends State<PlanScreen> {
   void _message(String value) => ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(value)),
       );
+
+  bool _sameDate(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
 }

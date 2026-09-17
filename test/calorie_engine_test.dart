@@ -205,6 +205,41 @@ void main() {
         1875,
       );
     });
+
+    test('projects a completion date from a custom calorie target', () {
+      final base = profile(currentWeightKg: 80, goalWeightKg: 70);
+      final maintenance = CalorieEngine.maintenance(base, today: referenceDate);
+      final custom = base.copyWith(
+        manualCalorieTarget: (maintenance - 550).round(),
+      );
+
+      final result = CalorieEngine.planRecommendation(
+        custom,
+        today: referenceDate,
+      );
+
+      expect(result.targetSupportsGoal, isTrue);
+      expect(result.projectedWeeklyRateKg, closeTo(.5, .01));
+      expect(result.projectedGoalDate, DateTime(2025, 10, 19));
+    });
+
+    test('recalculates the projected date from a new weigh-in', () {
+      final lighter = profile(currentWeightKg: 75, goalWeightKg: 70,
+          manualCalorieTarget: 1800);
+      final heavier = lighter.copyWith(currentWeightKg: 80);
+
+      final lighterPlan = CalorieEngine.planRecommendation(lighter,
+          today: referenceDate);
+      final heavierPlan = CalorieEngine.planRecommendation(heavier,
+          today: referenceDate);
+
+      expect(lighterPlan.projectedGoalDate, isNotNull);
+      expect(heavierPlan.projectedGoalDate, isNotNull);
+      expect(
+        heavierPlan.projectedGoalDate!.compareTo(lighterPlan.projectedGoalDate!),
+        greaterThan(0),
+      );
+    });
   });
 
   group('profile plan persistence', () {

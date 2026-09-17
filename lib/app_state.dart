@@ -98,6 +98,30 @@ class AppState extends ChangeNotifier {
               ? profile!.copyWith(activityLevel: 'Sedentary')
               : profile!,
         );
+  CaloriePlanRecommendation get planRecommendation {
+    final p = profile;
+    if (p == null) {
+      return CalorieEngine.planRecommendation(
+        const Profile(
+          name: 'Guest',
+          sex: 'Male',
+          birthYear: 1990,
+          heightCm: 170,
+          currentWeightKg: 70,
+          goalWeightKg: 70,
+          activityLevel: 'Sedentary',
+          weeklyGoalKg: 0,
+        ),
+      );
+    }
+    final planningProfile = p.addExerciseCalories
+        ? p.copyWith(activityLevel: 'Sedentary')
+        : p;
+    return CalorieEngine.planRecommendation(planningProfile);
+  }
+
+  DateTime? get projectedGoalDate => planRecommendation.projectedGoalDate;
+
   int get baseCalorieTarget =>
       selectedWellness.baseCalorieTarget ?? _calculatedBaseTarget;
   int get workoutCalories => selectedWorkouts.fold(
@@ -144,6 +168,7 @@ class AppState extends ChangeNotifier {
       );
       await _persistWeights();
     }
+    await _refreshTodayTargetSnapshot();
     await _prefs!.setString('profile', jsonEncode(value.toJson()));
     await _recordChange();
   }
@@ -200,6 +225,7 @@ class AppState extends ChangeNotifier {
     if (profile != null) {
       profile = profile!.copyWith(currentWeightKg: kg);
       await _prefs!.setString('profile', jsonEncode(profile!.toJson()));
+      await _refreshTodayTargetSnapshot();
     }
     await _persistWeights();
     await _recordChange();
@@ -353,6 +379,25 @@ class AppState extends ChangeNotifier {
       carbsTarget: _calculatedCarbsTarget,
       fatTarget: _calculatedFatTarget,
       fiberTarget: _calculatedFiberTarget,
+    );
+  }
+
+  /// Recalculate today's live plan after a profile or weight change while
+  /// leaving older diary days frozen for honest historical comparisons.
+  Future<void> _refreshTodayTargetSnapshot() async {
+    if (profile == null || _prefs == null) return;
+    final today = dateKey(DateTime.now());
+    final current = wellness[today] ?? DailyWellness(date: today);
+    wellness[today] = current.copyWith(
+      baseCalorieTarget: _calculatedBaseTarget,
+      proteinTarget: _calculatedProteinTarget,
+      carbsTarget: _calculatedCarbsTarget,
+      fatTarget: _calculatedFatTarget,
+      fiberTarget: _calculatedFiberTarget,
+    );
+    await _prefs!.setString(
+      'wellness',
+      jsonEncode(wellness.values.map((e) => e.toJson()).toList()),
     );
   }
 

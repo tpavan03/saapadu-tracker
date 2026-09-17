@@ -13,6 +13,9 @@ class CaloriePlanRecommendation {
     required this.safety,
     required this.earliestSafeDate,
     required this.usesManualTarget,
+    required this.projectedGoalDate,
+    required this.projectedWeeklyRateKg,
+    required this.targetSupportsGoal,
   });
 
   /// The guarded, automatically calculated calorie target.
@@ -30,6 +33,16 @@ class CaloriePlanRecommendation {
   final GoalPlanSafety safety;
   final DateTime? earliestSafeDate;
   final bool usesManualTarget;
+
+  /// The date implied by the active calorie target and current weight.
+  /// This is recalculated whenever the profile weight or target changes.
+  final DateTime? projectedGoalDate;
+
+  /// Weekly change implied by the active calorie target.
+  final double projectedWeeklyRateKg;
+
+  /// False when a custom target is at maintenance or points away from the goal.
+  final bool targetSupportsGoal;
 
   bool get isSafe => safety == GoalPlanSafety.safe;
 }
@@ -109,11 +122,30 @@ class CalorieEngine {
     final recommendedTarget = (guarded / 10).round() * 10;
     final hasManualTarget =
         profile.manualCalorieTarget != null && profile.manualCalorieTarget! > 0;
+    final effectiveTarget =
+        hasManualTarget ? profile.manualCalorieTarget! : recommendedTarget;
+    final maintenanceCalories = maintenance(profile, today: today);
+    final targetDelta = maintenanceCalories - effectiveTarget;
+    final targetSupportsGoal = direction == 0 ||
+        (direction < 0 && targetDelta > 0) ||
+        (direction > 0 && targetDelta < 0);
+    final rawProjectedRate = targetSupportsGoal && direction != 0
+        ? targetDelta.abs() * 7 / 7700
+        : plannedWeeklyChange;
+    final projectedRate = direction < 0
+        ? math.min(rawProjectedRate, maxAutomaticWeeklyLossKg)
+        : rawProjectedRate;
+    final projectedGoalDate = direction == 0
+        ? referenceDate
+        : projectedRate > 0
+            ? referenceDate.add(Duration(
+                days: (weightDifferenceKg / projectedRate * 7).ceil(),
+              ))
+            : null;
 
     return CaloriePlanRecommendation(
       recommendedTarget: recommendedTarget,
-      effectiveTarget:
-          hasManualTarget ? profile.manualCalorieTarget! : recommendedTarget,
+      effectiveTarget: effectiveTarget,
       plannedWeeklyRateKg: plannedWeeklyChange,
       requiredWeeklyRateKg: requiredWeeklyRate,
       safety: safety,
@@ -126,6 +158,9 @@ class CalorieEngine {
             )
           : null,
       usesManualTarget: hasManualTarget,
+      projectedGoalDate: projectedGoalDate,
+      projectedWeeklyRateKg: projectedRate,
+      targetSupportsGoal: targetSupportsGoal,
     );
   }
 
