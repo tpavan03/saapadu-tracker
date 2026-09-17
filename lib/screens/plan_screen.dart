@@ -356,6 +356,12 @@ class _PlanScreenState extends State<PlanScreen> {
       _message('Enter a custom target between 800 and 6000 kcal.');
       return;
     }
+    final minimumTarget = value.sex == 'Male' ? 1500 : 1200;
+    if (useCustomTarget && custom! < minimumTarget) {
+      _message(
+          'For an automatic plan, keep the custom target at or above $minimumTarget kcal/day.');
+      return;
+    }
     await widget.state.saveProfile(value);
     if (mounted) Navigator.pop(context);
   }
