@@ -87,9 +87,25 @@ Show this below the result:
 > **Maintenance estimate: 2,180 kcal/day**  
 > Your real needs can be higher or lower. Your weight trend is more useful than any single-day estimate.
 
-Recalculate REE and TDEE after a new weight is saved, but freeze the displayed food goal for the rest of that local calendar day. Apply the new goal the next day so the historical ledger does not change.
+Recalculate REE and TDEE after a new weight is saved. Refresh today's live
+target immediately, while historical diary days retain their saved target
+snapshots so later weigh-ins do not rewrite the ledger.
 
 ## Weight-loss target
+
+When a user enters a custom calorie target, derive the forecast from the
+current maintenance estimate instead of reusing the weekly slider:
+
+```text
+dailyDeficit = maintenanceCalories - customTarget
+projectedWeeklyChange = dailyDeficit * 7 / 7,700
+daysToGoal = remainingWeight / projectedWeeklyChange * 7
+```
+
+The exact custom forecast remains visible so changing the number changes the
+date. Flag a loss faster than 0.9 kg/week and show the earliest date supported
+by the automatic safety limit. A target at or above maintenance is reported as
+unable to move toward a loss goal.
 
 Support `Maintain` and `Lose weight` in the first release. Do not treat a desired date as permission to create an extreme deficit.
 
