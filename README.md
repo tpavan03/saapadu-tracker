@@ -96,4 +96,8 @@ test/                Calculation and workout coverage
 web/                 PWA metadata, offline service worker, and Vercel headers
 ```
 
+## Automatic web deployment
+
+The existing Vercel project is connected to `tpavan03/saapadu-tracker`, with `main` as its production branch. A push to `main` runs the pinned Flutter web build in `scripts/vercel-build.sh` and publishes `build/web` to the existing production domain. The project's existing Supabase client configuration is supplied through Vercel environment variables; no replacement backend or database migration occurs on a frontend push. Android APK builds remain separate from web deployments.
+
 Saapadu has no ads or analytics. Keep an occasional backup from **More → Data & backup** before clearing browser data or moving devices.
