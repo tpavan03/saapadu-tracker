@@ -10,4 +10,10 @@ android/.gradle/
 android/local.properties
 ios/Pods/
 web/flutter_service_worker.js
+.vercel/
+.env*
+test-results/
+premium-audit.json
 
+.vercel
+.env*

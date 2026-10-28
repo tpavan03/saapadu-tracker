@@ -7,6 +7,7 @@ import 'more_screen.dart';
 import 'progress_screen.dart';
 import 'today_screen.dart';
 import 'workout_screen.dart';
+import 'fasting_screen.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key, required this.state});
@@ -25,9 +26,11 @@ class _HomeShellState extends State<HomeShell> {
       TodayScreen(
           state: widget.state,
           onDiary: () => setState(() => index = 1),
-          onActivity: () => setState(() => index = 2)),
+          onActivity: () => setState(() => index = 2),
+          onFasting: () => setState(() => index = 3)),
       DiaryScreen(state: widget.state),
       WorkoutScreen(state: widget.state),
+      FastingScreen(state: widget.state),
       ProgressScreen(state: widget.state),
       MoreScreen(state: widget.state),
     ];
@@ -40,7 +43,9 @@ class _HomeShellState extends State<HomeShell> {
               children: [
                 Container(
                   width: 232,
-                  color: AppColors.paper,
+                  decoration: const BoxDecoration(
+                      color: AppColors.paper,
+                      border: Border(right: BorderSide(color: AppColors.line))),
                   child: SafeArea(
                     child: Column(
                       children: [
@@ -57,6 +62,16 @@ class _HomeShellState extends State<HomeShell> {
                                 )),
                           ]),
                         ),
+                        const Padding(
+                            padding: EdgeInsets.fromLTRB(22, 0, 22, 18),
+                            child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text('A LITTLE MORE BALANCE.',
+                                    style: TextStyle(
+                                        fontSize: 9,
+                                        color: AppColors.muted,
+                                        letterSpacing: 1.6,
+                                        fontWeight: FontWeight.w700)))),
                         Expanded(
                           child: NavigationRail(
                             backgroundColor: AppColors.paper,
@@ -86,6 +101,11 @@ class _HomeShellState extends State<HomeShell> {
                                 label: Text('Activity'),
                               ),
                               NavigationRailDestination(
+                                icon: Icon(Icons.timelapse_outlined),
+                                selectedIcon: Icon(Icons.timelapse_rounded),
+                                label: Text('Fasting'),
+                              ),
+                              NavigationRailDestination(
                                 icon: Icon(Icons.show_chart_outlined),
                                 selectedIcon: Icon(Icons.show_chart_rounded),
                                 label: Text('Progress'),
@@ -111,7 +131,8 @@ class _HomeShellState extends State<HomeShell> {
                                   size: 17, color: AppColors.forest),
                               SizedBox(width: 8),
                               Expanded(
-                                  child: Text('Your data stays on this device',
+                                  child: Text(
+                                      'Local first. Your account, your history.',
                                       style: TextStyle(
                                           fontSize: 11,
                                           color: AppColors.muted))),
@@ -146,6 +167,10 @@ class _HomeShellState extends State<HomeShell> {
                   icon: Icon(Icons.fitness_center_outlined),
                   selectedIcon: Icon(Icons.fitness_center_rounded),
                   label: 'Activity'),
+              NavigationDestination(
+                  icon: Icon(Icons.timelapse_outlined),
+                  selectedIcon: Icon(Icons.timelapse_rounded),
+                  label: 'Fasting'),
               NavigationDestination(
                   icon: Icon(Icons.show_chart_outlined),
                   selectedIcon: Icon(Icons.show_chart_rounded),

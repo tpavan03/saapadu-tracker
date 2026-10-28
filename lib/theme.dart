@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const ink = Color(0xFF17241D);
-  static const forest = Color(0xFF215C3F);
-  static const leaf = Color(0xFF4D8B65);
-  static const lime = Color(0xFFC9E265);
-  static const cream = Color(0xFFF7F3E8);
-  static const paper = Color(0xFFFFFDF7);
-  static const terracotta = Color(0xFFD96C4E);
-  static const sky = Color(0xFF7EB6C4);
-  static const muted = Color(0xFF6C766F);
-  static const line = Color(0xFFE2DED2);
+  static const ink = Color(0xFF153C31);
+  static const forest = Color(0xFF145C47);
+  static const leaf = Color(0xFF54866B);
+  static const lime = Color(0xFFF3C56B);
+  static const cream = Color(0xFFF2F7F4);
+  static const paper = Color(0xFFFFFFFF);
+  static const terracotta = Color(0xFFCA684E);
+  static const sky = Color(0xFF427F9B);
+  static const muted = Color(0xFF61776C);
+  static const line = Color(0xFFDDE8E1);
 }
 
 ThemeData buildTheme() {
@@ -25,9 +25,10 @@ ThemeData buildTheme() {
     useMaterial3: true,
     colorScheme: scheme,
     scaffoldBackgroundColor: AppColors.cream,
-    fontFamily: 'sans-serif',
+    fontFamily: 'DM Sans',
     textTheme: const TextTheme(
       displaySmall: TextStyle(
+        fontFamily: 'Sora',
         color: AppColors.ink,
         fontSize: 36,
         height: 1.05,
@@ -35,6 +36,7 @@ ThemeData buildTheme() {
         letterSpacing: -1.4,
       ),
       headlineMedium: TextStyle(
+        fontFamily: 'Sora',
         color: AppColors.ink,
         fontSize: 26,
         height: 1.1,
@@ -42,6 +44,7 @@ ThemeData buildTheme() {
         letterSpacing: -.8,
       ),
       titleLarge: TextStyle(
+        fontFamily: 'Sora',
         color: AppColors.ink,
         fontSize: 20,
         fontWeight: FontWeight.w800,
@@ -94,6 +97,28 @@ ThemeData buildTheme() {
         TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
       ),
     ),
+    appBarTheme: const AppBarTheme(
+        backgroundColor: AppColors.cream,
+        foregroundColor: AppColors.ink,
+        elevation: 0,
+        centerTitle: false),
+    chipTheme: ChipThemeData(
+        backgroundColor: AppColors.paper,
+        selectedColor: AppColors.lime.withValues(alpha: .6),
+        side: const BorderSide(color: AppColors.line),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        labelStyle: const TextStyle(
+            fontFamily: 'DM Sans', fontWeight: FontWeight.w600)),
+    scrollbarTheme: ScrollbarThemeData(
+        thumbColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.dragged)
+                ? AppColors.forest
+                : states.contains(WidgetState.hovered)
+                    ? AppColors.leaf
+                    : AppColors.muted.withValues(alpha: .5)),
+        trackColor: const WidgetStatePropertyAll(AppColors.cream),
+        thickness: const WidgetStatePropertyAll(7),
+        radius: const Radius.circular(8)),
     dividerColor: AppColors.line,
   );
 }

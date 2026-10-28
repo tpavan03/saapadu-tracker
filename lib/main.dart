@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 import 'app_state.dart';
 import 'cloud_sync_service.dart';
@@ -9,6 +11,12 @@ import 'theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks(['DM Sans'],
+        await rootBundle.loadString('assets/fonts/OFL-DMSans.txt'));
+    yield LicenseEntryWithLineBreaks(
+        ['Sora'], await rootBundle.loadString('assets/fonts/OFL-Sora.txt'));
+  });
   final cloud = CloudSyncService();
   await cloud.initialize();
   final state = AppState(cloud: cloud);

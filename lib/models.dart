@@ -335,19 +335,54 @@ class WorkoutEntry {
 }
 
 class FastingState {
-  const FastingState({this.startedAt, this.targetHours = 16});
+  const FastingState(
+      {this.startedAt, this.targetHours = 12, this.history = const []});
   final DateTime? startedAt;
   final int targetHours;
+  final List<FastSession> history;
   bool get isActive => startedAt != null;
+  DateTime? get targetAt => startedAt?.add(Duration(hours: targetHours));
+  Duration elapsedAt(DateTime now) =>
+      startedAt == null || now.isBefore(startedAt!)
+          ? Duration.zero
+          : now.difference(startedAt!);
   factory FastingState.fromJson(Map<String, dynamic> j) => FastingState(
         startedAt: j['startedAt'] == null
             ? null
             : DateTime.parse(j['startedAt'] as String),
-        targetHours: j['targetHours'] as int? ?? 16,
+        targetHours: ((j['targetHours'] as num?)?.toInt() ?? 12).clamp(8, 20),
+        history: (j['history'] as List? ?? const [])
+            .map((item) =>
+                FastSession.fromJson(Map<String, dynamic>.from(item as Map)))
+            .toList(),
       );
   Map<String, dynamic> toJson() => {
         'startedAt': startedAt?.toIso8601String(),
         'targetHours': targetHours,
+        'history': history.map((session) => session.toJson()).toList(),
+      };
+}
+
+class FastSession {
+  const FastSession(
+      {required this.startedAt,
+      required this.endedAt,
+      required this.targetHours});
+  final DateTime startedAt;
+  final DateTime endedAt;
+  final int targetHours;
+  Duration get duration => endedAt.isBefore(startedAt)
+      ? Duration.zero
+      : endedAt.difference(startedAt);
+  bool get targetReached => duration >= Duration(hours: targetHours);
+  factory FastSession.fromJson(Map<String, dynamic> data) => FastSession(
+      startedAt: DateTime.parse(data['startedAt'] as String),
+      endedAt: DateTime.parse(data['endedAt'] as String),
+      targetHours: (data['targetHours'] as num).toInt());
+  Map<String, dynamic> toJson() => {
+        'startedAt': startedAt.toUtc().toIso8601String(),
+        'endedAt': endedAt.toUtc().toIso8601String(),
+        'targetHours': targetHours
       };
 }
 

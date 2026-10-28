@@ -100,6 +100,13 @@ class DiaryScreen extends StatelessWidget {
                   state: state, initialMeal: meal),
               icon: const Icon(Icons.add, size: 18),
               label: const Text('Add food')),
+          if (state.logs.any((entry) =>
+              entry.meal == meal &&
+              entry.date.compareTo(state.selectedKey) < 0))
+            IconButton(
+                tooltip: 'Repeat last $meal',
+                onPressed: () => _repeatMeal(context, meal),
+                icon: const Icon(Icons.history_rounded)),
         ]),
       ),
       if (entries.isEmpty)
@@ -115,6 +122,7 @@ class DiaryScreen extends StatelessWidget {
           Dismissible(
             key: ValueKey(entry.id),
             direction: DismissDirection.endToStart,
+            confirmDismiss: (_) => _confirmDelete(context, entry.food.name),
             background: Container(
                 color: AppColors.terracotta,
                 alignment: Alignment.centerRight,
@@ -134,12 +142,87 @@ class DiaryScreen extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.w800)),
                   IconButton(
                       tooltip: 'Delete',
-                      onPressed: () => state.deleteFood(entry.id),
+                      onPressed: () async {
+                        if (await _confirmDelete(context, entry.food.name)) {
+                          await state.deleteFood(entry.id);
+                        }
+                      },
                       icon: const Icon(Icons.close, size: 18)),
                 ]),
               ),
             ),
           ),
     ]));
+  }
+
+  Future<bool> _confirmDelete(BuildContext context, String name) async =>
+      await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+                  title: Text('Remove $name?'),
+                  content: const Text(
+                      'This removes the entry from this day’s diary and updates its nutrition totals.'),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Keep entry')),
+                    FilledButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('Remove entry'))
+                  ])) ??
+      false;
+
+  Future<void> _repeatMeal(BuildContext context, String meal) async {
+    final previous = state.logs
+        .where((entry) =>
+            entry.meal == meal && entry.date.compareTo(state.selectedKey) < 0)
+        .toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
+    if (previous.isEmpty) return;
+    final date = previous.first.date;
+    final items = previous.where((entry) => entry.date == date).toList();
+    final accepted = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+                title: Text('Repeat your last $meal?'),
+                content: Text(
+                    'Add ${items.length} food entries from $date to ${state.selectedKey}, keeping the same serving sizes.\n\n${items.map((entry) => entry.food.name).join(', ')}'),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel')),
+                  FilledButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Repeat meal'))
+                ]));
+    if (accepted != true) return;
+    if (state.fasting.isActive &&
+        DateUtils.isSameDay(state.selectedDate, DateTime.now()) &&
+        items.any((entry) => entry.calories > 0)) {
+      if (!context.mounted) return;
+      final end = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+                  title: const Text('End fast at this entry time?'),
+                  content: const Text(
+                      'This meal contains calories. You can end the window now or keep the timer and log the meal normally.'),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Keep timer & log')),
+                    FilledButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('End fast & log'))
+                  ]));
+      if (end == null) return;
+      if (end) await state.stopFast();
+    }
+    for (final entry in items) {
+      await state.addFood(entry.food, entry.servings, meal);
+    }
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Repeated ${items.length} foods in $meal.')));
+    }
   }
 }

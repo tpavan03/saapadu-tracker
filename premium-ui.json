@@ -1,0 +1,9 @@
+{
+  "profile": "product-admin",
+  "sourceRoots": ["lib"],
+  "locale": "en-IN",
+  "canonicalMap": "UX-CONTRACT.md",
+  "requiredCapabilities": ["Select/Listbox", "Date", "Form", "Scrollbar", "Toast", "CRUD"],
+  "ownership": { "Select/Listbox": "authored", "Date": "authored" },
+  "evidence": { "crudFullFlow": "test/fasting_state_test.dart", "failurePaths": "test/fasting_state_test.dart" }
+}

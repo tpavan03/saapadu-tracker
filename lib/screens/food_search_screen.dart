@@ -26,10 +26,12 @@ class _FoodSearchScreenState extends State<FoodSearchScreen> {
   final search = TextEditingController();
   String query = '';
   String category = 'All';
+  final FocusNode searchFocus = FocusNode();
 
   @override
   void dispose() {
     search.dispose();
+    searchFocus.dispose();
     super.dispose();
   }
 
@@ -93,6 +95,7 @@ class _FoodSearchScreenState extends State<FoodSearchScreen> {
                 padding: const EdgeInsets.fromLTRB(18, 14, 18, 10),
                 child: TextField(
                   controller: search,
+                  focusNode: searchFocus,
                   autofocus: true,
                   decoration: InputDecoration(
                     hintText: 'Search idli, dosa, rice, sambar, egg…',
@@ -103,7 +106,9 @@ class _FoodSearchScreenState extends State<FoodSearchScreen> {
                             onPressed: () {
                               search.clear();
                               setState(() => query = '');
+                              searchFocus.requestFocus();
                             },
+                            tooltip: 'Clear food search',
                             icon: const Icon(Icons.close),
                           ),
                   ),
@@ -184,6 +189,7 @@ class _FoodSearchScreenState extends State<FoodSearchScreen> {
   Future<void> _chooseServing(FoodItem food) async {
     double servings = 1;
     String meal = widget.initialMeal;
+    bool saving = false;
     final added = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -260,12 +266,61 @@ class _FoodSearchScreenState extends State<FoodSearchScreen> {
                     ),
                     const SizedBox(height: 18),
                     FilledButton(
-                      onPressed: () async {
-                        await widget.state.addFood(food, servings, meal);
-                        if (context.mounted) Navigator.pop(context, true);
-                      },
-                      child: Text(
-                          'Add ${(food.calories * servings).round()} kcal'),
+                      onPressed: saving
+                          ? null
+                          : () async {
+                              setSheetState(() => saving = true);
+                              try {
+                                if (food.calories > 0 &&
+                                    widget.state.fasting.isActive &&
+                                    DateUtils.isSameDay(
+                                        widget.state.selectedDate,
+                                        DateTime.now())) {
+                                  final endFast = await showDialog<bool>(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                              title: const Text(
+                                                  'End fast at this entry time?'),
+                                              content: const Text(
+                                                  'This food contains calories. Save your fasting window now, or keep your timer running and log the food normally.'),
+                                              actions: [
+                                                TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.pop(
+                                                            context, false),
+                                                    child: const Text(
+                                                        'Keep timer & log')),
+                                                FilledButton(
+                                                    onPressed: () =>
+                                                        Navigator.pop(
+                                                            context, true),
+                                                    child: const Text(
+                                                        'End fast & log'))
+                                              ]));
+                                  if (endFast == null) {
+                                    setSheetState(() => saving = false);
+                                    return;
+                                  }
+                                  if (endFast) await widget.state.stopFast();
+                                }
+                                await widget.state
+                                    .addFood(food, servings, meal);
+                                if (context.mounted) {
+                                  Navigator.pop(context, true);
+                                }
+                              } catch (_) {
+                                if (context.mounted) {
+                                  setSheetState(() => saving = false);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text(
+                                              'Food could not be saved. Please try again.')));
+                                }
+                              }
+                            },
+                      child: Text(saving
+                          ? 'Saving food…'
+                          : 'Add ${(food.calories * servings).round()} kcal'),
                     ),
                     const SizedBox(height: 8),
                     Text(

@@ -118,9 +118,8 @@ class AppState extends ChangeNotifier {
         ),
       );
     }
-    final planningProfile = p.addExerciseCalories
-        ? p.copyWith(activityLevel: 'Sedentary')
-        : p;
+    final planningProfile =
+        p.addExerciseCalories ? p.copyWith(activityLevel: 'Sedentary') : p;
     return CalorieEngine.planRecommendation(planningProfile);
   }
 
@@ -235,20 +234,46 @@ class AppState extends ChangeNotifier {
     await _recordChange();
   }
 
-  Future<void> startFast(int hours) async {
-    fasting = FastingState(startedAt: DateTime.now(), targetHours: hours);
+  Future<void> startFast(int hours, {DateTime? now}) async {
+    if (fasting.isActive) return;
+    if (hours < 8 || hours > 20) {
+      throw const FormatException('Choose a window between 8 and 20 hours.');
+    }
+    final p = profile;
+    if (p != null &&
+        ((DateTime.now().year - p.birthYear) < 18 ||
+            CalorieEngine.bmi(p) < 18.5)) {
+      throw const FormatException(
+          'Ask a clinician before changing your meal timing.');
+    }
+    fasting = FastingState(
+        startedAt: (now ?? DateTime.now()).toUtc(),
+        targetHours: hours,
+        history: fasting.history);
     await _persistFasting();
     await _recordChange();
   }
 
-  Future<void> stopFast() async {
-    fasting = FastingState(targetHours: fasting.targetHours);
+  Future<void> stopFast({DateTime? now}) async {
+    if (!fasting.isActive) return;
+    final end = (now ?? DateTime.now()).toUtc();
+    final session = FastSession(
+        startedAt: fasting.startedAt!,
+        endedAt: end,
+        targetHours: fasting.targetHours);
+    fasting = FastingState(
+        targetHours: fasting.targetHours,
+        history: [session, ...fasting.history].take(200).toList());
     await _persistFasting();
     await _recordChange();
   }
 
   Future<void> setFastingTarget(int hours) async {
-    fasting = FastingState(startedAt: fasting.startedAt, targetHours: hours);
+    if (fasting.isActive) return;
+    if (hours < 8 || hours > 20) {
+      throw const FormatException('Choose a window between 8 and 20 hours.');
+    }
+    fasting = FastingState(targetHours: hours, history: fasting.history);
     await _persistFasting();
     await _recordChange();
   }

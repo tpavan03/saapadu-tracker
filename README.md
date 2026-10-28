@@ -6,6 +6,10 @@
 
 Track meals, macros, movement, sleep, fasting, and weight over the weeks that actually matter.
 
+Version 1.2 adds a redesigned interface, a dedicated fasting workspace with
+custom windows and saved history, quick hydration, repeated meals, and clearer
+food-saving controls. Existing diary and cloud records remain compatible.
+
 [![Live demo](https://img.shields.io/badge/Live%20demo-saapadu--tracker.vercel.app-1f6f5b?style=for-the-badge)](https://saapadu-tracker.vercel.app)
 [![Flutter](https://img.shields.io/badge/Flutter-Web%20%7C%20Android-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev)
 [![License](https://img.shields.io/badge/license-personal%20project-5f6368?style=for-the-badge)](#)

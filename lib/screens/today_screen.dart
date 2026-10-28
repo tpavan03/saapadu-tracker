@@ -12,10 +12,12 @@ class TodayScreen extends StatelessWidget {
     required this.state,
     required this.onDiary,
     required this.onActivity,
+    required this.onFasting,
   });
   final AppState state;
   final VoidCallback onDiary;
   final VoidCallback onActivity;
+  final VoidCallback onFasting;
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +27,9 @@ class TodayScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const SectionEyebrow(
+              icon: Icons.wb_sunny_outlined, label: 'A LITTLE MORE BALANCE'),
+          const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -42,7 +47,7 @@ class TodayScreen extends StatelessWidget {
                     if (state.projectedGoalDate != null) ...[
                       const SizedBox(height: 6),
                       Text(
-                        'You will reach ${p.goalWeightKg.toStringAsFixed(1)} kg by ${DateFormat('d MMMM y').format(state.projectedGoalDate!)}',
+                        'Estimated goal: ${p.goalWeightKg.toStringAsFixed(1)} kg · ${DateFormat('d MMMM y').format(state.projectedGoalDate!)}',
                         style: const TextStyle(
                             color: AppColors.forest,
                             fontWeight: FontWeight.w800),
@@ -72,6 +77,8 @@ class TodayScreen extends StatelessWidget {
                       children: [calories, const SizedBox(height: 16), macros]);
             },
           ),
+          const SizedBox(height: 16),
+          _rhythmCard(context),
           const SizedBox(height: 16),
           _suggestionCard(context),
           const SizedBox(height: 12),
@@ -140,6 +147,96 @@ class TodayScreen extends StatelessWidget {
       ),
     );
   }
+
+  Widget _rhythmCard(BuildContext context) =>
+      LayoutBuilder(builder: (context, box) {
+        final hydration = Card(
+            child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        const Icon(Icons.water_drop_rounded,
+                            color: AppColors.sky),
+                        const SizedBox(width: 9),
+                        Expanded(
+                            child: Text('A moment to hydrate',
+                                style:
+                                    Theme.of(context).textTheme.titleMedium)),
+                        Text('${state.selectedWellness.waterMl} ml',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.sky))
+                      ]),
+                      const SizedBox(height: 10),
+                      const Text('Keep a simple record, one glass at a time.',
+                          style:
+                              TextStyle(color: AppColors.muted, fontSize: 12)),
+                      const SizedBox(height: 14),
+                      Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: [250, 500]
+                              .map((ml) => OutlinedButton.icon(
+                                  onPressed: () async {
+                                    await state.updateWellness(
+                                        state.selectedWellness.copyWith(
+                                            waterMl:
+                                                state.selectedWellness.waterMl +
+                                                    ml));
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(SnackBar(
+                                              content:
+                                                  Text('Added $ml ml water'),
+                                              duration:
+                                                  const Duration(seconds: 2)));
+                                    }
+                                  },
+                                  icon: const Icon(Icons.add, size: 16),
+                                  label: Text('$ml ml')))
+                              .toList()),
+                    ])));
+        final fasting = Card(
+            child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        const Icon(Icons.nights_stay_outlined,
+                            color: AppColors.forest),
+                        const SizedBox(width: 9),
+                        Expanded(
+                            child: Text('Your meal rhythm',
+                                style: Theme.of(context).textTheme.titleMedium))
+                      ]),
+                      const SizedBox(height: 10),
+                      Text(
+                          state.fasting.isActive
+                              ? 'A fasting window is active. Your timer stays with you.'
+                              : 'Optional fasting windows, with a timer and your own history.',
+                          style: const TextStyle(
+                              color: AppColors.muted, fontSize: 12)),
+                      const SizedBox(height: 14),
+                      TextButton.icon(
+                          onPressed: onFasting,
+                          icon:
+                              const Icon(Icons.arrow_forward_rounded, size: 17),
+                          label: Text(state.fasting.isActive
+                              ? 'Open active timer'
+                              : 'Explore fasting')),
+                    ])));
+        return box.maxWidth >= 720
+            ? Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(child: hydration),
+                const SizedBox(width: 16),
+                Expanded(child: fasting)
+              ])
+            : Column(
+                children: [hydration, const SizedBox(height: 12), fasting]);
+      });
 
   Widget _calorieCard(BuildContext context) => Container(
         constraints: const BoxConstraints(minHeight: 270),
@@ -333,7 +430,8 @@ class TodayScreen extends StatelessWidget {
           for (final suggestion in suggestions.take(3))
             Padding(
               padding: const EdgeInsets.only(bottom: 7),
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              child:
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Text('•  ', style: TextStyle(color: AppColors.leaf)),
                 Expanded(
                     child: Text(suggestion,

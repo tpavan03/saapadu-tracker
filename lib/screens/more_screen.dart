@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -11,6 +9,7 @@ import '../models.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'plan_screen.dart';
+import 'fasting_screen.dart';
 
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key, required this.state});
@@ -30,7 +29,19 @@ class MoreScreen extends StatelessWidget {
         Text('More for your routine',
             style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: 24),
-        _FastingCard(state: state),
+        Card(
+            child: ListTile(
+                contentPadding: const EdgeInsets.all(20),
+                leading: const Icon(Icons.timelapse_rounded,
+                    color: AppColors.forest, size: 32),
+                title: const Text('Your fasting windows'),
+                subtitle: const Text(
+                    'Open your timer, choose a window and revisit your history.'),
+                trailing: const Icon(Icons.arrow_forward_rounded),
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                        builder: (_) => FastingScreen(state: state))))),
         const SizedBox(height: 18),
         LayoutBuilder(builder: (context, box) {
           final w = box.maxWidth > 760 ? (box.maxWidth - 12) / 2 : box.maxWidth;
@@ -420,130 +431,5 @@ class MoreScreen extends StatelessWidget {
                   ],
                 )));
     if (saved != null) state.saveProfile(saved);
-  }
-}
-
-class _FastingCard extends StatefulWidget {
-  const _FastingCard({required this.state});
-  final AppState state;
-  @override
-  State<_FastingCard> createState() => _FastingCardState();
-}
-
-class _FastingCardState extends State<_FastingCard> {
-  Timer? timer;
-  @override
-  void initState() {
-    super.initState();
-    timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted && widget.state.fasting.isActive) setState(() {});
-    });
-  }
-
-  @override
-  void dispose() {
-    timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final fast = widget.state.fasting;
-    final elapsed = fast.startedAt == null
-        ? Duration.zero
-        : DateTime.now().difference(fast.startedAt!);
-    final target = Duration(hours: fast.targetHours);
-    final progress = (elapsed.inSeconds / target.inSeconds).clamp(0.0, 1.0);
-    String two(int n) => n.toString().padLeft(2, '0');
-    final display =
-        '${two(elapsed.inHours)}:${two(elapsed.inMinutes % 60)}:${two(elapsed.inSeconds % 60)}';
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-          color: AppColors.ink, borderRadius: BorderRadius.circular(28)),
-      child: LayoutBuilder(builder: (context, box) {
-        final compact = box.maxWidth < 620;
-        final info =
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(fast.isActive ? 'FAST IN PROGRESS' : 'INTERMITTENT FASTING',
-              style: const TextStyle(
-                  color: AppColors.lime,
-                  fontSize: 11,
-                  letterSpacing: 1.2,
-                  fontWeight: FontWeight.w900)),
-          const SizedBox(height: 8),
-          Text(
-              fast.isActive
-                  ? display
-                  : '${fast.targetHours}:${24 - fast.targetHours} schedule',
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 34,
-                  letterSpacing: -1,
-                  fontWeight: FontWeight.w900)),
-          const SizedBox(height: 7),
-          Text(
-              fast.isActive
-                  ? (progress >= 1
-                      ? 'Target reached. End when you are ready.'
-                      : '${(target - elapsed).inMinutes.clamp(0, 9999) ~/ 60}h ${(target - elapsed).inMinutes.clamp(0, 9999) % 60}m remaining')
-                  : 'A simple timer; fasting does not change your calorie target.',
-              style: TextStyle(color: Colors.white.withValues(alpha: .65))),
-        ]);
-        final controls =
-            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          if (!fast.isActive)
-            Wrap(
-                spacing: 7,
-                children: [12, 14, 16, 18]
-                    .map((h) => ChoiceChip(
-                          label: Text('$h:${24 - h}'),
-                          selected: fast.targetHours == h,
-                          selectedColor: AppColors.lime,
-                          onSelected: (_) => widget.state.setFastingTarget(h),
-                        ))
-                    .toList()),
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            style: FilledButton.styleFrom(
-                backgroundColor:
-                    fast.isActive ? AppColors.terracotta : AppColors.lime,
-                foregroundColor: fast.isActive ? Colors.white : AppColors.ink),
-            onPressed: () => fast.isActive
-                ? widget.state.stopFast()
-                : widget.state.startFast(fast.targetHours),
-            icon: Icon(
-                fast.isActive ? Icons.stop_rounded : Icons.play_arrow_rounded),
-            label: Text(fast.isActive ? 'End fast' : 'Start fast'),
-          ),
-        ]);
-        return Column(children: [
-          if (compact) ...[info, const SizedBox(height: 18), controls] else
-            Row(children: [
-              Expanded(child: info),
-              const SizedBox(width: 30),
-              SizedBox(width: 300, child: controls)
-            ]),
-          if (fast.isActive) ...[
-            const SizedBox(height: 18),
-            ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 8,
-                    backgroundColor: Colors.white12,
-                    color: AppColors.lime))
-          ],
-          const SizedBox(height: 12),
-          Text(
-            'Fasting may not be suitable during pregnancy or breastfeeding, with an eating-disorder history, or when diabetes medicines can cause low blood sugar. Ask your clinician first.',
-            style: TextStyle(
-                color: Colors.white.withValues(alpha: .45),
-                fontSize: 10,
-                height: 1.35),
-          ),
-        ]);
-      }),
-    );
   }
 }

@@ -24,6 +24,25 @@ class PageFrame extends StatelessWidget {
       );
 }
 
+class SectionEyebrow extends StatelessWidget {
+  const SectionEyebrow({super.key, required this.icon, required this.label});
+  final IconData icon;
+  final String label;
+  @override
+  Widget build(BuildContext context) =>
+      Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 16, color: AppColors.forest),
+        const SizedBox(width: 8),
+        Flexible(
+            child: Text(label,
+                style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.7,
+                    color: AppColors.forest)))
+      ]);
+}
+
 class DateNavigator extends StatelessWidget {
   const DateNavigator({super.key, required this.state});
   final AppState state;
