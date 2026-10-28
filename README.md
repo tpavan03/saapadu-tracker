@@ -73,6 +73,8 @@ flutter build web --release \
 
 See [`docs/cloud_setup.md`](docs/cloud_setup.md) and [`supabase/migrations/202609170001_cloud_backup.sql`](supabase/migrations/202609170001_cloud_backup.sql). Never place a Supabase secret or `service_role` key in a client build.
 
+**Hosted verification on 28 October 2026:** the existing Supabase project is restored. Auth health/settings return **200**, with Google and email enabled. Two disposable authenticated users passed their own backup **insert, upsert and reload**; cross-account reads/updates returned no rows, cross-account inserts were denied, and anonymous reads/writes were blocked. All synthetic records and accounts were removed. See [`docs/backend-verification.md`](docs/backend-verification.md) for evidence and OAuth/device verification limits.
+
 ## How the numbers are handled
 
 The target uses a Mifflin–St Jeor estimate, an activity factor, goal direction, and conservative safety floors. Workout estimates use MET values and credit 50% of the largest overlapping movement estimate so steps, workouts, and watch totals are not blindly added together.

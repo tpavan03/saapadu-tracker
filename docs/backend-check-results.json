@@ -1,0 +1,72 @@
+{
+  "checked_at_utc": "2026-10-28T12:07:31Z",
+  "results": [
+    {
+      "project": "exam",
+      "checks": {
+        "auth_health": 200,
+        "auth_settings": 200,
+        "enabled_providers": [
+          "google",
+          "email"
+        ],
+        "anonymous_read_status": 200,
+        "anonymous_read_empty_or_denied": true,
+        "confirmed_test_users_signed_in": 2,
+        "own_row_insert_and_reload": "passed for both users",
+        "own_row_upsert_and_reload": "passed for both users",
+        "both_exam_namespaces_roundtrip": true,
+        "cross_user_read": "blocked: 200 empty result",
+        "cross_user_update": "blocked: HTTP 200",
+        "cross_user_insert": "blocked: HTTP 403, PostgreSQL 42501",
+        "anonymous_write": "blocked: HTTP 401",
+        "result": "passed"
+      },
+      "cleanup": {
+        "row_delete_statuses": [
+          204,
+          204
+        ],
+        "user_delete_statuses": [
+          200,
+          200
+        ],
+        "synthetic_rows_remaining": 0,
+        "all_test_users_deleted": true
+      }
+    },
+    {
+      "project": "saapadu",
+      "checks": {
+        "auth_health": 200,
+        "auth_settings": 200,
+        "enabled_providers": [
+          "google",
+          "email"
+        ],
+        "anonymous_read_status": 401,
+        "anonymous_read_empty_or_denied": true,
+        "confirmed_test_users_signed_in": 2,
+        "own_row_insert_and_reload": "passed for both users",
+        "own_row_upsert_and_reload": "passed for both users",
+        "cross_user_read": "blocked: 200 empty result",
+        "cross_user_update": "blocked: HTTP 200",
+        "cross_user_insert": "blocked: HTTP 403, PostgreSQL 42501",
+        "anonymous_write": "blocked: HTTP 401",
+        "result": "passed"
+      },
+      "cleanup": {
+        "row_delete_statuses": [
+          204,
+          204
+        ],
+        "user_delete_statuses": [
+          200,
+          200
+        ],
+        "synthetic_rows_remaining": 0,
+        "all_test_users_deleted": true
+      }
+    }
+  ]
+}

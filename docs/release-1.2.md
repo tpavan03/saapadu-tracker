@@ -21,10 +21,12 @@ in place of `web`, subject to the installed Android toolchain.
 The existing Supabase project was paused during initial inspection and the
 owner resumed it on 28 October 2026. The original project's auth health and
 settings now return HTTP 200, Google OAuth is enabled, and anonymous access to
-`user_backups` is denied with HTTP 401 / PostgreSQL 42501. No authenticated test
-session was available, so a signed-in backup read/write roundtrip has not been
-verified. The existing SQL migration defines per-user read/insert/update
-policies and this release preserves that same table and payload format.
+`user_backups` is denied with HTTP 401 / PostgreSQL 42501. Subsequent checks with
+two disposable authenticated users passed insert, exact reload, changed-payload
+upsert, and cross-user read/update/insert isolation. The exact synthetic rows
+and users were removed afterward. See `docs/backend-verification.md` for the
+actual results and remaining physical-device/Google-login limits. This release
+preserves the same table and payload format.
 
 Future Vercel Git builds use `scripts/vercel-build.sh`, pinned to official Flutter
 3.47.3. The existing project's public SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY
