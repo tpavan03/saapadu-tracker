@@ -1,0 +1,53 @@
+name: Personal maintenance (90 days)
+
+on:
+  schedule:
+    # 08:47 and 20:47 IST; the second attempt retries a failed eligible day.
+    # The Python calendar gates alternate days and rotates three repositories.
+    - cron: '17 3,15 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Validate and show the schedule without publishing'
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: personal-maintenance-90-days
+  cancel-in-progress: false
+
+jobs:
+  maintenance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      actions: write # Allows this workflow to disable itself after day 90.
+    steps:
+      - name: Check out the latest default branch
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: main
+          persist-credentials: true
+      - name: Test the scheduling and publication guards
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python3 -B -m unittest discover -s .github/maintenance -p 'test_*.py' -v
+      - name: Validate the reviewed queue
+        run: python3 -B .github/maintenance/runner.py validate
+      - name: Determine today's eligibility
+        id: calendar
+        run: python3 -B .github/maintenance/runner.py plan
+      - name: Validate every source anchor for a manual preview
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run
+        run: python3 -B .github/maintenance/runner.py validate --all-evidence
+      - name: Publish the due guide
+        if: steps.calendar.outputs.due == 'true' && inputs.dry_run != true
+        run: python3 -B .github/maintenance/runner.py publish
+      - name: Stop this campaign permanently at day 90
+        if: steps.calendar.outputs.expired == 'true' && inputs.dry_run != true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 -B .github/maintenance/runner.py disable-expired

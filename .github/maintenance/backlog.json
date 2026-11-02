@@ -1,0 +1,384 @@
+{
+  "schema": 1,
+  "repository": "tpavan03/saapadu-tracker",
+  "timezone": "Asia/Kolkata",
+  "start_date": "2026-11-03",
+  "days": 90,
+  "interval_days": 2,
+  "rotation_size": 3,
+  "rotation_index": 0,
+  "tasks": [
+    {
+      "id": "native-signin-and-offline",
+      "title": "Use native sign-in and offline mode",
+      "path": "docs/handbook/native-signin-and-offline.md",
+      "body": "# Use native sign-in and offline mode\n\nThe Android app offers **Continue with Google** and **Continue on this device**. Choose Google when you want the account's existing cloud diary; choose device mode to keep a diary without signing in. The first explicit Google login may open its consent screen. Later app launches restore the saved session instead of automatically starting browser authentication.\n\nIf you have an older Saapadu installation, keep it until you have checked the restored history. The new package has its own device storage. A JSON backup is the transfer path for an unsynced diary; simply installing another package does not copy the old application's preferences.\n\nNative session storage and ordinary diary storage are separate. A network outage does not mean the locally saved diary has been erased. Do not clear app data as a first response to a temporary cloud error.\n\n## Implementation references\n\n- [lib/cloud_sync_service.dart](../../lib/cloud_sync_service.dart)\n- [lib/main.dart](../../lib/main.dart)\n- [docs/native_android.md](../../docs/native_android.md)\n",
+      "evidence": [
+        {
+          "path": "lib/cloud_sync_service.dart",
+          "contains": [
+            "persistSession: true",
+            "in.tpavan.saapadu://login-callback/"
+          ]
+        },
+        {
+          "path": "lib/main.dart",
+          "contains": [
+            "_continueLocally",
+            "HomeShell"
+          ]
+        },
+        {
+          "path": "docs/native_android.md",
+          "contains": [
+            "Keep the old app"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "edit-body-profile",
+      "title": "Edit body measurements and routine",
+      "path": "docs/handbook/edit-body-profile.md",
+      "body": "# Edit body measurements and routine\n\nOpen **More**, find your profile card, and choose **Edit**. The form includes name, current weight, height, age, goal weight, usual activity and the body reference used by the calorie equation. Review all measurements before saving; the form uses kilograms and centimetres rather than guessing units from the number entered.\n\nChanging current weight also creates or corrects today's weigh-in. To enter a reading from a previous date, use the dated check-in screen instead. Editing age updates the stored birth-year approximation; it does not collect a full date of birth.\n\nActivity and daily movement credit affect the calculation path, so choose them to describe the intended routine. A saved measurement refreshes the current recommendation while past diary targets retain their snapshots. The result remains an estimate, not a measured metabolic test.\n\n## Implementation references\n\n- [lib/screens/profile_screen.dart](../../lib/screens/profile_screen.dart)\n- [lib/app_state.dart](../../lib/app_state.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/screens/profile_screen.dart",
+          "contains": [
+            "Current weight",
+            "Height",
+            "Age",
+            "Save profile"
+          ]
+        },
+        {
+          "path": "lib/app_state.dart",
+          "contains": [
+            "Future<void> saveProfile",
+            "_refreshTodayTargetSnapshot"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dated-weight-checkins",
+      "title": "Record and correct dated weight check-ins",
+      "path": "docs/handbook/dated-weight-checkins.md",
+      "body": "# Record and correct dated weight check-ins\n\nOpen **Progress → Log weight** to record a measurement with a date. There is one reading per calendar date: saving another reading for that date corrects the entry instead of counting the same day twice. Use **View and edit weight check-ins** to revisit the history.\n\nBackdated entries improve the timeline but do not replace the current weight with an older measurement. The latest dated reading remains the current measurement. Future-dated readings are rejected. Check the selected date before saving a correction, especially when copying measurements from another app.\n\nThe weekly prompt is shown inside Saapadu; it is not a scheduled Android notification. Sparse history can still be logged normally. A personal trend estimate needs enough dated evidence, so a first check-in does not instantly create an observed weekly rate.\n\n## Implementation references\n\n- [lib/screens/progress_screen.dart](../../lib/screens/progress_screen.dart)\n- [lib/app_state.dart](../../lib/app_state.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/screens/progress_screen.dart",
+          "contains": [
+            "Log weight",
+            "View and edit weight check-ins"
+          ]
+        },
+        {
+          "path": "lib/app_state.dart",
+          "contains": [
+            "weights.last.weightKg",
+            "A check-in cannot be dated in the future.",
+            "days: 7"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "requested-and-estimated-dates",
+      "title": "Understand requested and estimated goal dates",
+      "path": "docs/handbook/requested-and-estimated-dates.md",
+      "body": "# Understand requested and estimated goal dates\n\nThe requested date records your intention. The estimated date describes what the current plan or recent check-ins imply. Keeping those values separate lets the estimate change without rewriting what you originally selected.\n\nWith limited history, Saapadu uses its calorie-plan estimate. Three recent readings spanning at least two weeks allow an observed trend. A plateau or movement away from the selected goal can leave that trend date unavailable; the app does not invent a finish date merely to fill the card.\n\nAdding a slower week does not automatically increase the deficit to chase the original deadline. Edit the goal plan explicitly when your intention changes. Historical days keep their recorded target snapshots. This distinction is useful when comparing past diary decisions with a forecast that has since moved.\n\n## Implementation references\n\n- [lib/weight_trend.dart](../../lib/weight_trend.dart)\n- [lib/app_state.dart](../../lib/app_state.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/weight_trend.dart",
+          "contains": [
+            "readings.length < 3 || span < 14",
+            "WeightForecastBasis.insufficientProgress"
+          ]
+        },
+        {
+          "path": "lib/app_state.dart",
+          "contains": [
+            "goalDate: null",
+            "The requested deadline is an intention"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "search-food-and-servings",
+      "title": "Find familiar foods and choose servings",
+      "path": "docs/handbook/search-food-and-servings.md",
+      "body": "# Find familiar foods and choose servings\n\nUse **Log food** on Today or **Add food** in a diary meal. Search checks both the food name and its aliases, which helps when a familiar dish has more than one spelling. Category filters narrow the current results; clear a filter if an expected item disappears.\n\nSelect the food to open its serving controls. Read the serving label before changing the multiplier: one serving is the catalog's described portion, not automatically one gram or one full recipe. The calorie and nutrient preview scales with the selected servings.\n\nCheck the meal and date before saving. Home-cooked recipes vary, so the catalog numbers are estimates. When the available entry describes a substantially different portion or preparation, a custom food can be clearer than repeatedly guessing an unexplained multiplier.\n\n## Implementation references\n\n- [lib/screens/food_search_screen.dart](../../lib/screens/food_search_screen.dart)\n- [lib/screens/diary_screen.dart](../../lib/screens/diary_screen.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/screens/food_search_screen.dart",
+          "contains": [
+            "food.aliases.any",
+            "_chooseServing",
+            "servings.toStringAsFixed(2)",
+            "labelText: 'Meal'"
+          ]
+        },
+        {
+          "path": "lib/screens/diary_screen.dart",
+          "contains": [
+            "Add food"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "create-custom-foods",
+      "title": "Create a reusable custom food",
+      "path": "docs/handbook/create-custom-foods.md",
+      "body": "# Create a reusable custom food\n\nOpen the food picker and choose **Custom food** or **Create custom food**. Enter a recognizable name, a serving label, serving grams and the calories and nutrients for that same serving. A clear label such as a measured portion is easier to reuse than an unexplained number.\n\nKeep calories, protein, carbohydrates, fat and fibre on the same portion basis. Do not enter calories per serving alongside protein for an entire batch. When using a package label, first check which quantity its nutrition table describes.\n\nSaving creates a reusable food entry; it does not by itself mean that you ate it. Select the saved item and log the intended portion to the intended meal. Custom foods are part of the diary's backup data, so include them when checking a restored backup on another device.\n\n## Implementation references\n\n- [lib/screens/food_search_screen.dart](../../lib/screens/food_search_screen.dart)\n- [lib/app_state.dart](../../lib/app_state.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/screens/food_search_screen.dart",
+          "contains": [
+            "Create custom food",
+            "Calories per serving",
+            "Save food"
+          ]
+        },
+        {
+          "path": "lib/app_state.dart",
+          "contains": [
+            "Future<void> addCustomFood",
+            "'customFoods'"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "water-sleep-and-steps",
+      "title": "Keep daily wellness entries on the right day",
+      "path": "docs/handbook/water-sleep-and-steps.md",
+      "body": "# Keep daily wellness entries on the right day\n\nToday includes controls for water, sleep and steps. Check the displayed date before editing: the selected day determines which wellness record is read and updated. The diary's food totals and the wellness signals are related views of the same selected calendar day.\n\nEnter a daily total rather than assuming every edit adds another amount. For example, copying a watch's current step total is different from adding that total again each time you reopen the tracker. Sleep is recorded in hours, and water uses the unit shown by the control.\n\nThese are manual diary entries, not evidence of a connected health-device integration. Changing steps may affect credited activity when movement credit is enabled. It does not create a second workout record or import the watch's underlying exercise history.\n\n## Implementation references\n\n- [lib/screens/today_screen.dart](../../lib/screens/today_screen.dart)\n- [lib/app_state.dart](../../lib/app_state.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/screens/today_screen.dart",
+          "contains": [
+            "_editWater",
+            "_editSleep",
+            "_editSteps"
+          ]
+        },
+        {
+          "path": "lib/app_state.dart",
+          "contains": [
+            "Future<void> updateWellness",
+            "wellness[value.date] ="
+          ]
+        }
+      ]
+    },
+    {
+      "id": "movement-credit-explained",
+      "title": "Understand movement credit without double counting",
+      "path": "docs/handbook/movement-credit-explained.md",
+      "body": "# Understand movement credit without double counting\n\nActivity can appear as steps, logged workouts or a watch's active-calorie total. Those sources can describe overlapping movement. Saapadu compares the estimates instead of simply adding all three together, then uses a conservative fraction as diary credit when daily movement credit is enabled.\n\nThe profile's fixed-activity mode and daily-credit mode have different calculation paths. Review the profile setting if a workout appears in the activity log but does not increase the food budget. A recorded workout and a credited calorie allowance are separate concepts.\n\nKeep watch entries to active calories rather than a whole-day total that includes resting energy. The activity screen labels its estimate accordingly. These calculations help explain the application's budget; they are not a direct measurement of energy use and should not be interpreted as permission to chase a device number.\n\n## Implementation references\n\n- [lib/app_state.dart](../../lib/app_state.dart)\n- [lib/screens/workout_screen.dart](../../lib/screens/workout_screen.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/app_state.dart",
+          "contains": [
+            "final activeEstimate",
+            "activeEstimate * .5",
+            "activityLevel: 'Sedentary'"
+          ]
+        },
+        {
+          "path": "lib/screens/workout_screen.dart",
+          "contains": [
+            "Active calories for the day"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "log-and-review-workouts",
+      "title": "Log workouts with duration and intensity",
+      "path": "docs/handbook/log-and-review-workouts.md",
+      "body": "# Log workouts with duration and intensity\n\nOpen **Activity → Log workout**, choose the activity and intensity, and set the duration. The preview estimates active energy using the chosen activity and the current profile measurement. Save only the session you intend to record for the selected day.\n\nSimilar activity names can have different intensity estimates. Review the full choice rather than selecting the first matching word. A longer duration should describe a longer session, not an adjustment made solely to reach a preferred calorie total.\n\nAfter saving, review the session list and the daily totals. Watch active calories are entered separately. The budget applies its overlap rule, so recording a workout does not imply that its full estimated calories will be added again on top of steps and a watch total. Keep original device records if you need an independent history.\n\n## Implementation references\n\n- [lib/screens/workout_screen.dart](../../lib/screens/workout_screen.dart)\n- [lib/workout_engine.dart](../../lib/workout_engine.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/screens/workout_screen.dart",
+          "contains": [
+            "Log workout",
+            "Activity & intensity",
+            "Duration",
+            "Save workout"
+          ]
+        },
+        {
+          "path": "lib/workout_engine.dart",
+          "contains": [
+            "class WorkoutEngine",
+            "workoutTypes"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fasting-timer-and-history",
+      "title": "Use the fasting timer and preserve its history",
+      "path": "docs/handbook/fasting-timer-and-history.md",
+      "body": "# Use the fasting timer and preserve its history\n\nOpen **Fasting** or the fasting shortcut in More. Choose a supported window before starting. Once a timer is active, end that window before selecting a different plan. The custom control uses the supported range rather than accepting an arbitrary duration.\n\nEnding early is still a recorded event. Use **End & save** when you want the active window finished and retained in history. Leaving and reopening the screen is different from ending the timer; the start timestamp belongs to the saved fasting state.\n\nLogging food remains possible. If a food contains calories, the picker offers an explicit choice about ending the fasting window instead of silently discarding the food entry. Read the app's consent and suitability prompts before starting. The timer is a diary tool and does not establish that a fasting routine is appropriate for a particular person.\n\n## Implementation references\n\n- [lib/screens/fasting_screen.dart](../../lib/screens/fasting_screen.dart)\n- [lib/screens/food_search_screen.dart](../../lib/screens/food_search_screen.dart)\n- [lib/app_state.dart](../../lib/app_state.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/screens/fasting_screen.dart",
+          "contains": [
+            "End & save",
+            "End the active window before changing your plan."
+          ]
+        },
+        {
+          "path": "lib/screens/food_search_screen.dart",
+          "contains": [
+            "keep your timer running and log the food normally"
+          ]
+        },
+        {
+          "path": "lib/app_state.dart",
+          "contains": [
+            "Future<void> stopFast"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "portable-backups-and-migration",
+      "title": "Move a diary with a portable backup",
+      "path": "docs/handbook/portable-backups-and-migration.md",
+      "body": "# Move a diary with a portable backup\n\nOpen **More → Data & backup → Copy backup** and save the complete JSON somewhere private. Keep the original text intact; copying only the profile section loses meals and other history. A backup is a separate recovery copy, not merely the visible screen.\n\nOn the destination installation, use **Restore** with the complete exported text. Keep the source app installed until you have checked the restored profile, meals, weights and other records. Different Android package identities do not share local preferences automatically.\n\nTreat restore as an intentional replacement operation. Export the destination diary first if it already contains records you may want later. The cloud account and device backup paths serve different recovery needs, so a successful Google sign-in does not prove that an unsynced old device diary has been transferred.\n\n## Implementation references\n\n- [lib/screens/more_screen.dart](../../lib/screens/more_screen.dart)\n- [lib/app_state.dart](../../lib/app_state.dart)\n- [docs/native_android.md](../../docs/native_android.md)\n",
+      "evidence": [
+        {
+          "path": "lib/screens/more_screen.dart",
+          "contains": [
+            "Data & backup",
+            "Copy backup",
+            "Restore"
+          ]
+        },
+        {
+          "path": "lib/app_state.dart",
+          "contains": [
+            "exportBackupMap",
+            "importBackup"
+          ]
+        },
+        {
+          "path": "docs/native_android.md",
+          "contains": [
+            "Both apps can remain installed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cloud-history-and-offline-drafts",
+      "title": "Connect cloud history without losing an offline draft",
+      "path": "docs/handbook/cloud-history-and-offline-drafts.md",
+      "body": "# Connect cloud history without losing an offline draft\n\nA device diary and an existing signed-in diary can both contain valuable records. When first linking the device to an account with cloud history, Saapadu restores the cloud version and keeps the offline draft separately instead of deciding that the newest device timestamp should replace everything.\n\nUse **Copy saved offline diary** in More to retrieve that retained draft. Keep both exports before manually combining or replacing histories. Copying the draft retrieves it; it is not an automatic record-by-record merge.\n\nA failed ownership lookup must not upload the draft over an account whose history has not been read. Continue to protect the device copy while retrying the connection. On account changes, the previous owner's diary must not become the next account's upload. These boundaries are part of sync correctness, not just the visual sign-in screen.\n\n## Implementation references\n\n- [lib/app_state.dart](../../lib/app_state.dart)\n- [lib/screens/more_screen.dart](../../lib/screens/more_screen.dart)\n- [test/account_restore_test.dart](../../test/account_restore_test.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/app_state.dart",
+          "contains": [
+            "pending_guest_backup",
+            "guest_link_pending_user_id",
+            "guestLinkPending"
+          ]
+        },
+        {
+          "path": "lib/screens/more_screen.dart",
+          "contains": [
+            "Copy saved offline diary"
+          ]
+        },
+        {
+          "path": "test/account_restore_test.dart",
+          "contains": [
+            "account switching"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "calendar-and-historical-targets",
+      "title": "Read diary dates and historical target snapshots",
+      "path": "docs/handbook/calendar-and-historical-targets.md",
+      "body": "# Read diary dates and historical target snapshots\n\nThe date selector determines which food, workout and wellness entries are displayed. Before editing a past meal, check the selected calendar day rather than assuming every screen has returned to today. A correct food on the wrong day can distort both daily totals.\n\nHistorical targets are snapshots. Later profile or weight changes refresh the current plan without retroactively changing what every older diary day showed. This makes it possible to interpret earlier records using the target that applied at the time.\n\nA historical day's target and today's recommendation can therefore differ without indicating corruption. When investigating a difference, compare the selected date, saved wellness snapshot and current profile separately. Avoid deleting a day merely because its numbers do not equal today's recalculated estimate. Export a backup before performing broad recovery changes.\n\n## Implementation references\n\n- [lib/app_state.dart](../../lib/app_state.dart)\n- [lib/screens/today_screen.dart](../../lib/screens/today_screen.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/app_state.dart",
+          "contains": [
+            "void setSelectedDate",
+            "_ensureTargetSnapshot",
+            "selectedWellness.baseCalorieTarget"
+          ]
+        },
+        {
+          "path": "lib/screens/today_screen.dart",
+          "contains": [
+            "DateNavigator"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "macros-and-next-meal-prompts",
+      "title": "Read macros and next-meal prompts",
+      "path": "docs/handbook/macros-and-next-meal-prompts.md",
+      "body": "# Read macros and next-meal prompts\n\nThe Macros card displays eaten amounts against the selected day's goals for protein, carbohydrates, fat and fibre. These values are built from logged servings, so a missing meal or a mismatched serving basis affects the totals before any suggestion is considered.\n\nToday also shows practical next-meal prompts and remaining nutrient gaps. Those prompts are simple application rules based on the current diary; they are not a personalized clinical meal plan or an automatically verified inventory of food available at home.\n\nStart by correcting the diary if the result looks implausible. Review custom-food nutrient units and serving multipliers, then compare the selected date and current target settings. A suggestion can change after a meal is logged because its input totals changed. It does not mean the app changed the historical food's original nutrient values.\n\n## Implementation references\n\n- [lib/screens/today_screen.dart](../../lib/screens/today_screen.dart)\n- [lib/app_state.dart](../../lib/app_state.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/screens/today_screen.dart",
+          "contains": [
+            "name: 'Protein'",
+            "name: 'Fiber'",
+            "_mealGuideCard",
+            "_suggestionCard"
+          ]
+        },
+        {
+          "path": "lib/app_state.dart",
+          "contains": [
+            "double get proteinEaten",
+            "double get fiberEaten"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "night-interface-and-local-navigation",
+      "title": "Navigate the night interface and verify layout changes",
+      "path": "docs/handbook/night-interface-and-local-navigation.md",
+      "body": "# Navigate the night interface and verify layout changes\n\nThe main destinations are Today, Diary, Activity, Fasting, Progress and More. The phone uses bottom navigation; a wider layout uses a side rail. The home shell keeps the destinations in an indexed stack so changing tabs preserves their mounted screen state.\n\nWhen checking a UI change, visit every destination rather than judging only the first screen. Repeat at narrow phone widths and with larger system text. Labels, form actions and the bottom navigation must remain usable without relying on colour alone.\n\nThe shared theme defines the night surfaces, foreground colours and typography. Prefer those semantic colours to hard-coded replacements in individual cards. Use the existing theme and profile widget checks when changing shared components. A visually clean desktop screenshot does not establish that a phone keyboard or enlarged text will fit.\n\n## Implementation references\n\n- [lib/screens/home_shell.dart](../../lib/screens/home_shell.dart)\n- [lib/theme.dart](../../lib/theme.dart)\n- [test/native_theme_test.dart](../../test/native_theme_test.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/screens/home_shell.dart",
+          "contains": [
+            "IndexedStack",
+            "NavigationRail",
+            "NavigationBar"
+          ]
+        },
+        {
+          "path": "lib/theme.dart",
+          "contains": [
+            "class AppColors",
+            "ThemeData buildTheme"
+          ]
+        },
+        {
+          "path": "test/native_theme_test.dart",
+          "contains": [
+            "320",
+            "390"
+          ]
+        }
+      ]
+    }
+  ]
+}
