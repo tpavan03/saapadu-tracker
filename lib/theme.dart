@@ -1,31 +1,48 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const ink = Color(0xFF153C31);
-  static const forest = Color(0xFF145C47);
-  static const leaf = Color(0xFF54866B);
-  static const lime = Color(0xFFF3C56B);
-  static const cream = Color(0xFFF2F7F4);
-  static const paper = Color(0xFFFFFFFF);
-  static const terracotta = Color(0xFFCA684E);
-  static const sky = Color(0xFF427F9B);
-  static const muted = Color(0xFF61776C);
-  static const line = Color(0xFFDDE8E1);
+  // An after-hours kitchen: rice, brass and green leaves against deep teal.
+  // Legacy names remain stable for existing screens; foregrounds and feature
+  // surfaces deliberately have separate semantic tokens.
+  static const ink = Color(0xFFF4F2E9);
+  static const forest = Color(0xFFA2DDC2);
+  static const leaf = Color(0xFFABCABB);
+  static const lime = Color(0xFFE9BE75);
+  static const cream = Color(0xFF091719);
+  static const paper = Color(0xFF12292B);
+  static const hero = Color(0xFF173F40);
+  static const onAccent = Color(0xFF09201B);
+  static const terracotta = Color(0xFFF3AC93);
+  static const dangerSurface = Color(0xFF713D35);
+  static const sky = Color(0xFFA0D3ED);
+  static const muted = Color(0xFFAAC1BB);
+  static const line = Color(0xFF2D4848);
+  static const lavender = Color(0xFFC5B9EA);
 }
 
 ThemeData buildTheme() {
-  final scheme = ColorScheme.fromSeed(
-    seedColor: AppColors.forest,
-    brightness: Brightness.light,
+  const scheme = ColorScheme.dark(
     primary: AppColors.forest,
-    secondary: AppColors.terracotta,
+    onPrimary: AppColors.onAccent,
+    secondary: AppColors.lime,
+    onSecondary: AppColors.onAccent,
     surface: AppColors.paper,
+    onSurface: AppColors.ink,
+    surfaceContainerHighest: AppColors.hero,
+    onSurfaceVariant: AppColors.muted,
+    outline: AppColors.line,
+    outlineVariant: AppColors.line,
+    error: AppColors.terracotta,
+    onError: AppColors.onAccent,
   );
   return ThemeData(
     useMaterial3: true,
+    brightness: Brightness.dark,
     colorScheme: scheme,
     scaffoldBackgroundColor: AppColors.cream,
     fontFamily: 'DM Sans',
+    visualDensity: VisualDensity.standard,
+    materialTapTargetSize: MaterialTapTargetSize.padded,
     textTheme: const TextTheme(
       displaySmall: TextStyle(
         fontFamily: 'Sora',
@@ -57,7 +74,9 @@ ThemeData buildTheme() {
       ),
       bodyLarge: TextStyle(color: AppColors.ink, fontSize: 16, height: 1.4),
       bodyMedium: TextStyle(color: AppColors.ink, fontSize: 14, height: 1.35),
-      labelLarge: TextStyle(fontWeight: FontWeight.w700, letterSpacing: .1),
+      bodySmall: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5),
+      labelLarge: TextStyle(
+          color: AppColors.ink, fontWeight: FontWeight.w700, letterSpacing: .1),
     ),
     cardTheme: const CardThemeData(
       elevation: 0,
@@ -80,22 +99,75 @@ ThemeData buildTheme() {
         borderSide: BorderSide(color: AppColors.line),
       ),
       contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      labelStyle: TextStyle(color: AppColors.muted),
+      helperStyle: TextStyle(color: AppColors.muted, height: 1.5),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(16)),
+        borderSide: BorderSide(color: AppColors.forest, width: 2),
+      ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: AppColors.forest,
-        foregroundColor: Colors.white,
+        foregroundColor: AppColors.onAccent,
+        minimumSize: const Size(48, 50),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     ),
-    navigationBarTheme: const NavigationBarThemeData(
+    outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+      foregroundColor: AppColors.forest,
+      minimumSize: const Size(48, 48),
+      side: const BorderSide(color: AppColors.line),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    )),
+    textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+      foregroundColor: AppColors.forest,
+      minimumSize: const Size(48, 48),
+    )),
+    iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+      foregroundColor: AppColors.forest,
+      minimumSize: const Size(48, 48),
+    )),
+    navigationBarTheme: NavigationBarThemeData(
       backgroundColor: AppColors.paper,
       indicatorColor: AppColors.lime,
-      height: 72,
-      labelTextStyle: WidgetStatePropertyAll(
-        TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-      ),
+      surfaceTintColor: Colors.transparent,
+      height: 80,
+      iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
+            color: states.contains(WidgetState.selected)
+                ? AppColors.onAccent
+                : AppColors.muted,
+            size: 24,
+          )),
+      labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
+            color: states.contains(WidgetState.selected)
+                ? AppColors.ink
+                : AppColors.muted,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+          )),
+    ),
+    navigationRailTheme: const NavigationRailThemeData(
+      selectedIconTheme: IconThemeData(color: AppColors.onAccent),
+      unselectedIconTheme: IconThemeData(color: AppColors.muted),
+      selectedLabelTextStyle:
+          TextStyle(color: AppColors.ink, fontWeight: FontWeight.w700),
+      unselectedLabelTextStyle: TextStyle(color: AppColors.muted),
+    ),
+    dialogTheme: const DialogThemeData(
+        backgroundColor: AppColors.paper, surfaceTintColor: Colors.transparent),
+    bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: AppColors.paper,
+        surfaceTintColor: Colors.transparent,
+        showDragHandle: true),
+    snackBarTheme: const SnackBarThemeData(
+      backgroundColor: AppColors.hero,
+      contentTextStyle: TextStyle(color: AppColors.ink),
+      behavior: SnackBarBehavior.floating,
     ),
     appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.cream,
@@ -104,11 +176,13 @@ ThemeData buildTheme() {
         centerTitle: false),
     chipTheme: ChipThemeData(
         backgroundColor: AppColors.paper,
-        selectedColor: AppColors.lime.withValues(alpha: .6),
+        selectedColor: AppColors.hero,
         side: const BorderSide(color: AppColors.line),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         labelStyle: const TextStyle(
-            fontFamily: 'DM Sans', fontWeight: FontWeight.w600)),
+            color: AppColors.ink,
+            fontFamily: 'DM Sans',
+            fontWeight: FontWeight.w600)),
     scrollbarTheme: ScrollbarThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
             (states) => states.contains(WidgetState.dragged)

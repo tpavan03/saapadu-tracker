@@ -41,7 +41,7 @@ class WorkoutScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
-                color: AppColors.ink,
+                color: AppColors.hero,
                 borderRadius: BorderRadius.circular(26),
               ),
               child: LayoutBuilder(builder: (context, box) {
@@ -68,7 +68,7 @@ class WorkoutScreen extends StatelessWidget {
                 final button = FilledButton.icon(
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.lime,
-                    foregroundColor: AppColors.ink,
+                    foregroundColor: AppColors.onAccent,
                   ),
                   onPressed: () => _addWorkout(context),
                   icon: const Icon(Icons.add),

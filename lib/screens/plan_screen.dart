@@ -5,6 +5,7 @@ import '../app_state.dart';
 import '../calorie_engine.dart';
 import '../models.dart';
 import '../theme.dart';
+import '../weight_trend.dart';
 
 enum _PlanMode { pace, date }
 
@@ -75,6 +76,8 @@ class _PlanScreenState extends State<PlanScreen> {
   Widget build(BuildContext context) {
     final plan = recommendation;
     final required = plan.requiredWeeklyRateKg;
+    final forecast = WeightTrend.forecast(draft, widget.state.weights,
+        modelDate: plan.projectedGoalDate);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.cream,
@@ -184,7 +187,7 @@ class _PlanScreenState extends State<PlanScreen> {
                   Container(
                     padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(
-                      color: AppColors.ink,
+                      color: AppColors.hero,
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: Column(
@@ -239,20 +242,24 @@ class _PlanScreenState extends State<PlanScreen> {
                                 fontSize: 12),
                           ),
                         ],
-                        if (plan.usesManualTarget && !plan.targetSupportsGoal) ...[
+                        if (plan.usesManualTarget &&
+                            !plan.targetSupportsGoal) ...[
                           const SizedBox(height: 12),
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: AppColors.terracotta.withValues(alpha: .22),
+                              color:
+                                  AppColors.terracotta.withValues(alpha: .22),
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: const Text(
                               'This custom target is at or above your maintenance estimate, so it will not move you toward the selected goal. Lower the target or choose maintenance as your goal.',
-                              style: TextStyle(color: Colors.white, fontSize: 12),
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 12),
                             ),
                           ),
-                        ] else if (!plan.isSafe && plan.earliestSafeDate != null) ...[
+                        ] else if (!plan.isSafe &&
+                            plan.earliestSafeDate != null) ...[
                           const SizedBox(height: 12),
                           Container(
                             padding: const EdgeInsets.all(12),
@@ -273,6 +280,40 @@ class _PlanScreenState extends State<PlanScreen> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 14),
+                  Card(
+                      child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Your check-in forecast',
+                                    style:
+                                        Theme.of(context).textTheme.titleLarge),
+                                const SizedBox(height: 8),
+                                Text(
+                                    forecast.estimatedDate == null
+                                        ? 'A reliable trend date is not available yet'
+                                        : DateFormat('d MMMM y')
+                                            .format(forecast.estimatedDate!),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium),
+                                const SizedBox(height: 8),
+                                Text(forecast.explanation,
+                                    style: const TextStyle(
+                                        color: AppColors.muted,
+                                        fontSize: 12,
+                                        height: 1.6)),
+                                if (forecast.weeklyChangeKg != null)
+                                  Padding(
+                                      padding: const EdgeInsets.only(top: 8),
+                                      child: Text(
+                                          '${forecast.weeklyChangeKg!.abs().toStringAsFixed(2)} kg/week observed · ${forecast.readingCount} recent check-ins',
+                                          style: const TextStyle(
+                                              color: AppColors.muted,
+                                              fontSize: 12))),
+                              ]))),
                   const SizedBox(height: 14),
                   Card(
                     child: Padding(
@@ -362,7 +403,11 @@ class _PlanScreenState extends State<PlanScreen> {
           'For an automatic plan, keep the custom target at or above $minimumTarget kcal/day.');
       return;
     }
-    await widget.state.saveProfile(value);
+    // Lock in the explicitly reviewed pace. Subsequent weigh-ins update the
+    // forecast rather than increasing the deficit to chase this requested date.
+    await widget.state.saveProfile(mode == _PlanMode.date
+        ? value.copyWith(weeklyGoalKg: recommendation.plannedWeeklyRateKg)
+        : value);
     if (mounted) Navigator.pop(context);
   }
 

@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../app_state.dart';
 import '../calorie_engine.dart';
 import '../cloud_sync_service.dart';
-import '../models.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'plan_screen.dart';
 import 'fasting_screen.dart';
+import 'profile_screen.dart';
+import 'login_screen.dart';
 
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key, required this.state});
@@ -76,7 +78,7 @@ class MoreScreen extends StatelessWidget {
                   children: [
                 Text(p.name, style: Theme.of(context).textTheme.titleMedium),
                 Text(
-                    '${p.currentWeightKg.toStringAsFixed(1)} kg • ${p.heightCm.round()} cm',
+                    '${p.currentWeightKg.toStringAsFixed(1)} kg • ${p.heightCm.round()} cm • ${CalorieEngine.age(p)} years',
                     style:
                         const TextStyle(color: AppColors.muted, fontSize: 12)),
               ])),
@@ -138,7 +140,7 @@ class MoreScreen extends StatelessWidget {
                         style: Theme.of(context).textTheme.titleMedium),
                     Text(
                       configured
-                          ? (cloud.email ?? 'Google sign-in')
+                          ? (cloud.email ?? 'Sign in to sync')
                           : 'Local storage active',
                       style: const TextStyle(
                         color: AppColors.muted,
@@ -153,9 +155,27 @@ class MoreScreen extends StatelessWidget {
             Text(
               configured
                   ? _syncMessage(cloud.status)
-                  : 'The app is ready for Google login and cloud sync. It needs a one-time connection to a free Supabase project; until then your browser copy and manual backups continue to work.',
+                  : 'Your diary is saved on this device. Manual backups remain available while cloud sync is not connected.',
               style: const TextStyle(color: AppColors.muted, fontSize: 12),
             ),
+            if (configured && !cloud.signedIn) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  if (kIsWeb) {
+                    await cloud.signInWithGoogle();
+                  } else if (context.mounted) {
+                    await Navigator.of(context).push(MaterialPageRoute<void>(
+                        builder: (routeContext) => LoginScreen(
+                            cloud: cloud,
+                            onContinueLocally: () =>
+                                Navigator.pop(routeContext))));
+                  }
+                },
+                icon: const Icon(Icons.login_rounded),
+                label: const Text('Sign in to sync'),
+              ),
+            ],
             if (configured && cloud.signedIn) ...[
               const SizedBox(height: 12),
               OutlinedButton.icon(
@@ -176,7 +196,7 @@ class MoreScreen extends StatelessWidget {
         CloudSyncStatus.syncing => 'Synchronizing your latest changes…',
         CloudSyncStatus.offline =>
           'Cloud is temporarily unavailable. Local logging continues and will retry later.',
-        CloudSyncStatus.denied => 'This Google account is not approved.',
+        CloudSyncStatus.denied => 'This account is not approved.',
         CloudSyncStatus.signedOut =>
           'Sign in to continue cloud synchronization.',
         CloudSyncStatus.unavailable =>
@@ -190,12 +210,13 @@ class MoreScreen extends StatelessWidget {
           Row(children: [
             const Icon(Icons.shield_outlined, color: AppColors.forest),
             const SizedBox(width: 9),
-            Text('Data & backup',
-                style: Theme.of(context).textTheme.titleMedium),
+            Expanded(
+                child: Text('Data & backup',
+                    style: Theme.of(context).textTheme.titleMedium)),
           ]),
           const SizedBox(height: 10),
           const Text(
-              'The browser copy is automatic. Keep an occasional manual backup as a second recovery path, especially before clearing browser data.',
+              'Your device copy is automatic. Keep an occasional manual backup as a second recovery path, especially before clearing app data.',
               style: TextStyle(color: AppColors.muted, fontSize: 12)),
           const SizedBox(height: 16),
           Wrap(spacing: 8, runSpacing: 8, children: [
@@ -208,6 +229,22 @@ class MoreScreen extends StatelessWidget {
                 icon: const Icon(Icons.restore_outlined),
                 label: const Text('Restore')),
           ]),
+          if (state.retainedGuestBackup != null) ...[
+            const Divider(height: 28),
+            Text('Saved offline diary',
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text(
+                state.guestLinkPending
+                    ? 'Your account backup has not been checked yet. Your offline diary is retained and will not overwrite account history automatically.'
+                    : 'Your offline diary was kept separately when you connected this account. Copy it for safekeeping or review before an explicit restore.',
+                style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+                onPressed: () => _copyRetainedGuestBackup(context),
+                icon: const Icon(Icons.inventory_2_outlined),
+                label: const Text('Copy saved offline diary')),
+          ],
         ]),
       ));
 
@@ -219,8 +256,9 @@ class MoreScreen extends StatelessWidget {
             const Icon(Icons.track_changes_outlined,
                 color: AppColors.terracotta),
             const SizedBox(width: 9),
-            Text('How targets work',
-                style: Theme.of(context).textTheme.titleMedium)
+            Expanded(
+                child: Text('How targets work',
+                    style: Theme.of(context).textTheme.titleMedium))
           ]),
           const SizedBox(height: 12),
           Text('${state.baseCalorieTarget} kcal base',
@@ -259,8 +297,9 @@ class MoreScreen extends StatelessWidget {
           Row(children: [
             const Icon(Icons.menu_book_outlined, color: AppColors.sky),
             const SizedBox(width: 9),
-            Text('Food data & privacy',
-                style: Theme.of(context).textTheme.titleMedium)
+            Expanded(
+                child: Text('Food data & privacy',
+                    style: Theme.of(context).textTheme.titleMedium))
           ]),
           const SizedBox(height: 12),
           Text(
@@ -271,7 +310,7 @@ class MoreScreen extends StatelessWidget {
               'Seed values use Indian Food Composition Tables and recipe estimates. Oil, size, and home recipes vary, so edit the serving to match your plate. There are no ads or analytics.',
               style: TextStyle(color: AppColors.muted, fontSize: 12)),
           const SizedBox(height: 12),
-          const Text('Saapadu v1.1 • Personal nutrition planning only',
+          const Text('Saapadu • Personal nutrition estimates',
               style: TextStyle(fontSize: 10, color: AppColors.muted)),
         ]),
       ));
@@ -293,6 +332,17 @@ class MoreScreen extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content:
               Text('Backup copied. Paste it into a safe note or text file.')));
+    }
+  }
+
+  Future<void> _copyRetainedGuestBackup(BuildContext context) async {
+    final backup = state.retainedGuestBackup;
+    if (backup == null) return;
+    await Clipboard.setData(ClipboardData(text: backup));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'Saved offline diary copied. Account history was not changed.')));
     }
   }
 
@@ -335,101 +385,6 @@ class MoreScreen extends StatelessWidget {
     }
   }
 
-  Future<void> _editProfile(BuildContext context) async {
-    final p = state.profile!;
-    final name = TextEditingController(text: p.name);
-    final height = TextEditingController(text: '${p.heightCm}');
-    final goal = TextEditingController(text: '${p.goalWeightKg}');
-    var activity = p.activityLevel;
-    var addExercise = p.addExerciseCalories;
-    var pace = p.weeklyGoalKg.clamp(.25, .75);
-    final saved = await showDialog<Profile>(
-        context: context,
-        builder: (context) => StatefulBuilder(
-            builder: (context, setLocal) => AlertDialog(
-                  title: const Text('Profile & targets'),
-                  content: SizedBox(
-                      width: 520,
-                      child: SingleChildScrollView(
-                          child: Column(children: [
-                        TextField(
-                            controller: name,
-                            decoration:
-                                const InputDecoration(labelText: 'Name')),
-                        const SizedBox(height: 10),
-                        Row(children: [
-                          Expanded(
-                              child: TextField(
-                                  controller: height,
-                                  keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                      labelText: 'Height', suffixText: 'cm'))),
-                          const SizedBox(width: 10),
-                          Expanded(
-                              child: TextField(
-                                  controller: goal,
-                                  keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                      labelText: 'Goal weight',
-                                      suffixText: 'kg'))),
-                        ]),
-                        const SizedBox(height: 10),
-                        DropdownButtonFormField<String>(
-                            initialValue: activity,
-                            decoration: const InputDecoration(
-                                labelText: 'Usual activity'),
-                            items: const [
-                              'Sedentary',
-                              'Lightly active',
-                              'Moderately active',
-                              'Very active'
-                            ]
-                                .map((v) =>
-                                    DropdownMenuItem(value: v, child: Text(v)))
-                                .toList(),
-                            onChanged: (v) => setLocal(() => activity = v!)),
-                        const SizedBox(height: 12),
-                        SwitchListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text('Add movement calories'),
-                            subtitle: const Text(
-                                'Use sedentary base + 50% of logged activity'),
-                            value: addExercise,
-                            onChanged: (v) => setLocal(() => addExercise = v)),
-                        const SizedBox(height: 5),
-                        Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                                'Planned pace: ${pace.toStringAsFixed(2)} kg/week',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w700))),
-                        Slider(
-                            value: pace,
-                            min: .25,
-                            max: .75,
-                            divisions: 2,
-                            onChanged: (v) => setLocal(() => pace = v)),
-                      ]))),
-                  actions: [
-                    TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancel')),
-                    FilledButton(
-                        onPressed: () => Navigator.pop(
-                            context,
-                            p.copyWith(
-                              name: name.text.trim().isEmpty
-                                  ? p.name
-                                  : name.text.trim(),
-                              heightCm: double.tryParse(height.text),
-                              goalWeightKg: double.tryParse(goal.text),
-                              activityLevel: activity,
-                              addExerciseCalories: addExercise,
-                              weeklyGoalKg: pace,
-                            )),
-                        child: const Text('Save')),
-                  ],
-                )));
-    if (saved != null) state.saveProfile(saved);
-  }
+  Future<void> _editProfile(BuildContext context) =>
+      ProfileScreen.open(context, state);
 }

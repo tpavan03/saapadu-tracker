@@ -131,6 +131,35 @@ void main() {
   });
 
   group('goal-date plan recommendation', () {
+    test(
+        'automatic floor slows the projected date to match the actual guarded deficit',
+        () {
+      final result = CalorieEngine.planRecommendation(
+        profile(currentWeightKg: 50, goalWeightKg: 40, weeklyGoalKg: .9),
+        today: referenceDate,
+      );
+      expect(result.effectiveTarget, 1500);
+      expect(result.plannedWeeklyRateKg, .9);
+      expect(result.projectedWeeklyRateKg, closeTo(493.25 * 7 / 7700, .00001));
+      expect(result.projectedGoalDate!.isAfter(result.earliestSafeDate!), true);
+    });
+    test(
+        'an automatic floor above maintenance does not invent weight-loss progress',
+        () {
+      final result = CalorieEngine.planRecommendation(
+        profile(
+            birthYear: 1935,
+            heightCm: 150,
+            currentWeightKg: 50,
+            goalWeightKg: 48,
+            weeklyGoalKg: .5),
+        today: referenceDate,
+      );
+      expect(result.effectiveTarget, 1500);
+      expect(result.targetSupportsGoal, false);
+      expect(result.projectedWeeklyRateKg, 0);
+      expect(result.projectedGoalDate, isNull);
+    });
     test('calculates the weekly rate and calorie target for a safe date', () {
       final result = CalorieEngine.planRecommendation(
         profile(
@@ -223,7 +252,8 @@ void main() {
       expect(result.projectedGoalDate, DateTime(2025, 10, 19));
     });
 
-    test('different valid custom targets produce different completion dates', () {
+    test('different valid custom targets produce different completion dates',
+        () {
       final base = profile(currentWeightKg: 80, goalWeightKg: 70);
       final slower = CalorieEngine.planRecommendation(
         base.copyWith(manualCalorieTarget: 2000),
@@ -240,24 +270,26 @@ void main() {
     });
 
     test('recalculates the projected date from a new weigh-in', () {
-      final lighter = profile(currentWeightKg: 75, goalWeightKg: 70,
-          manualCalorieTarget: 1800);
+      final lighter = profile(
+          currentWeightKg: 75, goalWeightKg: 70, manualCalorieTarget: 1800);
       final heavier = lighter.copyWith(currentWeightKg: 80);
 
-      final lighterPlan = CalorieEngine.planRecommendation(lighter,
-          today: referenceDate);
-      final heavierPlan = CalorieEngine.planRecommendation(heavier,
-          today: referenceDate);
+      final lighterPlan =
+          CalorieEngine.planRecommendation(lighter, today: referenceDate);
+      final heavierPlan =
+          CalorieEngine.planRecommendation(heavier, today: referenceDate);
 
       expect(lighterPlan.projectedGoalDate, isNotNull);
       expect(heavierPlan.projectedGoalDate, isNotNull);
       expect(
-        heavierPlan.projectedGoalDate!.compareTo(lighterPlan.projectedGoalDate!),
+        heavierPlan.projectedGoalDate!
+            .compareTo(lighterPlan.projectedGoalDate!),
         greaterThan(0),
       );
     });
 
-    test('keeps an aggressive custom forecast exact while flagging it unsafe', () {
+    test('keeps an aggressive custom forecast exact while flagging it unsafe',
+        () {
       final base = profile(currentWeightKg: 80, goalWeightKg: 70);
       final maintenance = CalorieEngine.maintenance(base, today: referenceDate);
       final result = CalorieEngine.planRecommendation(

@@ -6,22 +6,95 @@ import 'package:intl/intl.dart';
 import '../app_state.dart';
 import '../theme.dart';
 
-class PageFrame extends StatelessWidget {
+class PageFrame extends StatefulWidget {
   const PageFrame({super.key, required this.child});
   final Widget child;
+  @override
+  State<PageFrame> createState() => _PageFrameState();
+}
+
+class _PageFrameState extends State<PageFrame> {
+  final _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) => SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 26, 20, 40),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1120),
-              child: child,
+          child: Scrollbar(
+            controller: _scroll,
+            thumbVisibility: true,
+            child: SingleChildScrollView(
+              controller: _scroll,
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1120),
+                child: widget.child,
+              ),
             ),
           ),
         ),
       );
+}
+
+/// Original bowl-and-rice mark, also usable for the native launcher identity.
+class SaapaduMark extends StatelessWidget {
+  const SaapaduMark({super.key, this.size = 40});
+  final double size;
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+      child: SizedBox(
+          width: size,
+          height: size,
+          child: CustomPaint(
+              size: Size.square(size), foregroundPainter: _BowlMarkPainter())));
+}
+
+class _BowlMarkPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final scale = size.width / 40;
+    canvas.save();
+    canvas.scale(scale);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            const Rect.fromLTWH(0, 0, 40, 40), const Radius.circular(13)),
+        Paint()..color = AppColors.hero);
+    final bowl = Path()
+      ..moveTo(7, 22)
+      ..quadraticBezierTo(9, 34, 20, 34)
+      ..quadraticBezierTo(31, 34, 33, 22)
+      ..close();
+    canvas.drawPath(bowl, Paint()..color = AppColors.lime);
+    final line = Paint()
+      ..color = AppColors.cream
+      ..strokeWidth = 1.6
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(const Offset(12, 25), const Offset(16, 25), line);
+    canvas.drawLine(const Offset(19, 27), const Offset(22, 27), line);
+    canvas.drawLine(const Offset(25, 24), const Offset(28, 24), line);
+    final steam = Paint()
+      ..color = AppColors.forest
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.9
+      ..strokeCap = StrokeCap.round;
+    for (final x in [15.0, 22.0]) {
+      canvas.drawPath(
+          Path()
+            ..moveTo(x, 17)
+            ..cubicTo(x - 4, 13, x + 4, 12, x, 8),
+          steam);
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_BowlMarkPainter oldDelegate) => false;
 }
 
 class SectionEyebrow extends StatelessWidget {
@@ -58,9 +131,8 @@ class DateNavigator extends StatelessWidget {
               state.selectedDate.subtract(const Duration(days: 1))),
           icon: const Icon(Icons.chevron_left),
         ),
-        InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () async {
+        TextButton(
+          onPressed: () async {
             final value = await showDatePicker(
               context: context,
               initialDate: state.selectedDate,
@@ -69,14 +141,11 @@ class DateNavigator extends StatelessWidget {
             );
             if (value != null) state.setSelectedDate(value);
           },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: Text(
-              isToday
-                  ? 'Today'
-                  : DateFormat('EEE, d MMM').format(state.selectedDate),
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
+          child: Text(
+            isToday
+                ? 'Today'
+                : DateFormat('EEE, d MMM').format(state.selectedDate),
+            style: const TextStyle(fontWeight: FontWeight.w800),
           ),
         ),
         IconButton(
@@ -133,36 +202,54 @@ class MacroBar extends StatelessWidget {
 }
 
 class CalorieRing extends StatelessWidget {
-  const CalorieRing({super.key, required this.eaten, required this.target});
+  const CalorieRing(
+      {super.key,
+      required this.eaten,
+      required this.target,
+      this.diameter = 198});
   final double eaten;
   final int target;
+  final double diameter;
   @override
   Widget build(BuildContext context) {
     final remaining = target - eaten.round();
-    return SizedBox(
-      width: 176,
-      height: 176,
-      child: CustomPaint(
-        painter: _RingPainter(progress: target == 0 ? 0 : eaten / target),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('${remaining.abs()}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 36,
-                  height: 1,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -1.4,
+    return Semantics(
+        label:
+            'Estimated energy budget: ${eaten.round()} of $target kilocalories logged. ${remaining.abs()} kilocalories ${remaining >= 0 ? 'remaining' : 'above the estimate'}.',
+        child: ExcludeSemantics(
+            child: SizedBox(
+          width: diameter,
+          height: diameter,
+          child: CustomPaint(
+            painter: _RingPainter(progress: target == 0 ? 0 : eaten / target),
+            child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text('${remaining.abs()}',
+                            style: const TextStyle(
+                              fontFamily: 'Sora',
+                              color: AppColors.ink,
+                              fontSize: 36,
+                              height: 1,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -1.4,
+                            ))),
+                    const SizedBox(height: 9),
+                    Text(
+                        remaining >= 0
+                            ? 'kcal remaining'
+                            : 'kcal above estimate',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            color: AppColors.muted, fontSize: 11)),
+                  ],
                 )),
-            const SizedBox(height: 5),
-            Text(remaining >= 0 ? 'kcal left' : 'kcal over',
-                style: TextStyle(
-                    color: Colors.white.withValues(alpha: .7), fontSize: 12)),
-          ],
-        ),
-      ),
-    );
+          ),
+        )));
   }
 }
 
@@ -172,25 +259,42 @@ class _RingPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = size.center(Offset.zero);
-    final radius = size.width / 2 - 8;
+    final radius = size.width / 2 - 9;
     final base = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 10
+      ..strokeWidth = 11
       ..strokeCap = StrokeCap.round
-      ..color = Colors.white.withValues(alpha: .12);
+      ..color = AppColors.forest.withValues(alpha: .13);
     final active = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 10
+      ..strokeWidth = 11
       ..strokeCap = StrokeCap.round
       ..color = progress > 1 ? AppColors.terracotta : AppColors.lime;
-    canvas.drawCircle(center, radius, base);
+    const start = math.pi * .72;
+    const sweep = math.pi * 1.56;
+    canvas.drawArc(Rect.fromCircle(center: center, radius: radius), start,
+        sweep, false, base);
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
-      -math.pi / 2,
-      math.pi * 2 * progress.clamp(0.0, 1.0),
+      start,
+      sweep * progress.clamp(0.0, 1.0),
       false,
       active,
     );
+    final inner = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = AppColors.forest.withValues(alpha: .12);
+    canvas.drawCircle(center, radius - 13, inner);
+    // Three rice-grain marks complete the open plate without implying more data.
+    final rice = Paint()
+      ..color = AppColors.lime
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+    for (final dx in [-8.0, 0.0, 8.0]) {
+      canvas.drawLine(Offset(center.dx + dx - 1, size.height - 16),
+          Offset(center.dx + dx + 1, size.height - 12), rice);
+    }
   }
 
   @override

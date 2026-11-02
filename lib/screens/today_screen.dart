@@ -13,11 +13,13 @@ class TodayScreen extends StatelessWidget {
     required this.onDiary,
     required this.onActivity,
     required this.onFasting,
+    this.onProgress,
   });
   final AppState state;
   final VoidCallback onDiary;
   final VoidCallback onActivity;
   final VoidCallback onFasting;
+  final VoidCallback? onProgress;
 
   @override
   Widget build(BuildContext context) {
@@ -27,38 +29,82 @@ class TodayScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionEyebrow(
-              icon: Icons.wb_sunny_outlined, label: 'A LITTLE MORE BALANCE'),
-          const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(DateFormat('EEEE, d MMMM').format(state.selectedDate),
-                        style: const TextStyle(
-                            color: AppColors.muted,
-                            fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 4),
-                    Text('Namaskaram, $firstName',
-                        style: Theme.of(context).textTheme.headlineMedium),
-                    if (state.projectedGoalDate != null) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        'Estimated goal: ${p.goalWeightKg.toStringAsFixed(1)} kg · ${DateFormat('d MMMM y').format(state.projectedGoalDate!)}',
-                        style: const TextStyle(
-                            color: AppColors.forest,
-                            fontWeight: FontWeight.w800),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              DateNavigator(state: state),
-            ],
-          ),
+          Row(children: [
+            const SaapaduMark(),
+            const SizedBox(width: 11),
+            const Expanded(
+                child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text('saapadu.',
+                            style: TextStyle(
+                                fontFamily: 'Sora',
+                                fontSize: 25,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -1.2))))),
+            if (MediaQuery.sizeOf(context).width >= 360 &&
+                MediaQuery.textScalerOf(context).scale(1) <= 1.15)
+              Tooltip(
+                  message:
+                      'Your diary is stored on this device; see More for cloud sync.',
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    decoration: BoxDecoration(
+                        color: AppColors.paper,
+                        border: Border.all(color: AppColors.line),
+                        borderRadius: BorderRadius.circular(20)),
+                    child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.phone_android_rounded,
+                          size: 13, color: AppColors.forest),
+                      SizedBox(width: 6),
+                      Text('Your diary',
+                          style:
+                              TextStyle(fontSize: 10, color: AppColors.muted))
+                    ]),
+                  )),
+          ]),
+          const SizedBox(height: 26),
+          Text('Namaskaram, $firstName',
+              style: Theme.of(context).textTheme.headlineMedium),
+          const SizedBox(height: 6),
+          const Text('A little balance, on your own terms.',
+              style: TextStyle(color: AppColors.muted)),
+          const SizedBox(height: 10),
+          LayoutBuilder(builder: (context, box) {
+            final date = Text(
+                DateFormat('EEE, d MMM')
+                    .format(state.selectedDate)
+                    .toUpperCase(),
+                style: const TextStyle(
+                    fontSize: 10,
+                    letterSpacing: 1.3,
+                    color: AppColors.muted,
+                    fontWeight: FontWeight.w700));
+            return box.maxWidth >= 300 &&
+                    MediaQuery.textScalerOf(context).scale(1) <= 1.3
+                ? Row(children: [
+                    Expanded(child: date),
+                    DateNavigator(state: state)
+                  ])
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                        date,
+                        Align(
+                            alignment: Alignment.centerRight,
+                            child: DateNavigator(state: state))
+                      ]);
+          }),
+          if (state.projectedGoalDate != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                  'Estimated goal · ${p.goalWeightKg.toStringAsFixed(1)} kg by ${DateFormat('d MMM y').format(state.projectedGoalDate!)}',
+                  style: const TextStyle(
+                      color: AppColors.forest, fontSize: 12, height: 1.5)),
+            ),
           const SizedBox(height: 24),
           LayoutBuilder(
             builder: (context, box) {
@@ -78,6 +124,8 @@ class TodayScreen extends StatelessWidget {
             },
           ),
           const SizedBox(height: 16),
+          _checkInCard(context),
+          const SizedBox(height: 16),
           _rhythmCard(context),
           const SizedBox(height: 16),
           _suggestionCard(context),
@@ -94,9 +142,13 @@ class TodayScreen extends StatelessWidget {
           const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, box) {
-              final cardWidth = box.maxWidth > 700
+              final regularText =
+                  MediaQuery.textScalerOf(context).scale(1) <= 1.2;
+              final cardWidth = box.maxWidth > 760 && regularText
                   ? (box.maxWidth - 36) / 4
-                  : (box.maxWidth - 12) / 2;
+                  : box.maxWidth >= 340 && regularText
+                      ? (box.maxWidth - 12) / 2
+                      : box.maxWidth;
               return Wrap(
                 spacing: 12,
                 runSpacing: 12,
@@ -111,7 +163,7 @@ class TodayScreen extends StatelessWidget {
                   _signal(context,
                       width: cardWidth,
                       icon: Icons.bedtime_outlined,
-                      color: const Color(0xFF8C7CB7),
+                      color: AppColors.lavender,
                       value:
                           state.selectedWellness.sleepHours.toStringAsFixed(1),
                       unit: 'hours sleep',
@@ -147,6 +199,42 @@ class TodayScreen extends StatelessWidget {
       ),
     );
   }
+
+  Widget _checkInCard(BuildContext context) => Card(
+          child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+              padding: const EdgeInsets.all(11),
+              decoration: BoxDecoration(
+                  color: AppColors.hero,
+                  borderRadius: BorderRadius.circular(15)),
+              child: const Icon(Icons.monitor_weight_outlined,
+                  color: AppColors.lime, size: 24)),
+          const SizedBox(width: 12),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                const Text('Your weekly check-in',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 5),
+                Text(
+                    state.weightCheckInDue
+                        ? 'Add a weight reading to refresh your estimated goal timeline.'
+                        : 'Next check-in ${DateFormat('d MMM').format(state.nextWeightCheckInDate!)}. Your trend matters more than one reading.',
+                    style: const TextStyle(
+                        color: AppColors.muted, fontSize: 12, height: 1.5)),
+                if (onProgress != null)
+                  TextButton.icon(
+                      onPressed: onProgress,
+                      icon: const Icon(Icons.arrow_forward_rounded, size: 17),
+                      label: Text(state.weightCheckInDue
+                          ? 'Check in'
+                          : 'View progress')),
+              ])),
+        ]),
+      ));
 
   Widget _rhythmCard(BuildContext context) =>
       LayoutBuilder(builder: (context, box) {
@@ -239,21 +327,27 @@ class TodayScreen extends StatelessWidget {
       });
 
   Widget _calorieCard(BuildContext context) => Container(
+        width: double.infinity,
         constraints: const BoxConstraints(minHeight: 270),
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: AppColors.ink,
+          color: AppColors.hero,
           borderRadius: BorderRadius.circular(28),
         ),
         child: LayoutBuilder(builder: (context, box) {
-          final compact = box.maxWidth < 470;
+          final inline = box.maxWidth >= 290 &&
+              MediaQuery.textScalerOf(context).scale(1) <= 1.15;
+          final ring = CalorieRing(
+              eaten: state.caloriesEaten,
+              target: state.adjustedCalorieTarget,
+              diameter: box.maxWidth < 470 ? 136 : 198);
           final text = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('ENERGY BUDGET',
+              const Text('YOUR DAILY PLATE',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: .58),
+                    color: AppColors.muted,
                     fontSize: 11,
                     letterSpacing: 1.2,
                     fontWeight: FontWeight.w800,
@@ -261,25 +355,18 @@ class TodayScreen extends StatelessWidget {
               const SizedBox(height: 10),
               Text('${state.caloriesEaten.round()} eaten',
                   style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.ink,
                       fontSize: 24,
                       fontWeight: FontWeight.w800)),
               const SizedBox(height: 8),
               Text(
                   '${state.baseCalorieTarget} goal  +  ${state.exerciseCalories} activity',
-                  style: TextStyle(color: Colors.white.withValues(alpha: .65))),
-              if (state.projectedGoalDate != null) ...[
-                const SizedBox(height: 6),
-                Text(
-                  'Estimated goal: ${DateFormat('d MMM y').format(state.projectedGoalDate!)}',
-                  style: TextStyle(color: Colors.white.withValues(alpha: .65)),
-                ),
-              ],
+                  style: const TextStyle(color: AppColors.muted)),
               const SizedBox(height: 20),
               FilledButton.icon(
                 style: FilledButton.styleFrom(
                     backgroundColor: AppColors.lime,
-                    foregroundColor: AppColors.ink),
+                    foregroundColor: AppColors.onAccent),
                 onPressed: () => FoodSearchScreen.open(context,
                     state: state, initialMeal: _mealForNow()),
                 icon: const Icon(Icons.add),
@@ -287,7 +374,7 @@ class TodayScreen extends StatelessWidget {
               ),
             ],
           );
-          if (compact) {
+          if (!inline) {
             return Column(children: [
               CalorieRing(
                   eaten: state.caloriesEaten,
@@ -297,10 +384,8 @@ class TodayScreen extends StatelessWidget {
             ]);
           }
           return Row(children: [
-            CalorieRing(
-                eaten: state.caloriesEaten,
-                target: state.adjustedCalorieTarget),
-            const SizedBox(width: 28),
+            ring,
+            const SizedBox(width: 20),
             Expanded(child: text),
           ]);
         }),
@@ -336,7 +421,7 @@ class TodayScreen extends StatelessWidget {
                   name: 'Fat',
                   value: state.fatEaten,
                   target: state.fatTarget,
-                  color: const Color(0xFFD5A43D)),
+                  color: AppColors.lime),
               const SizedBox(height: 18),
               MacroBar(
                   name: 'Fiber',
@@ -358,7 +443,7 @@ class TodayScreen extends StatelessWidget {
           'Search dosa, idli, rice, sambar, eggs, fruit, or any custom food. Your targets update instantly.';
       icon = Icons.auto_awesome_outlined;
     } else if (state.proteinEaten < state.proteinTarget * .55) {
-      title = 'Protein needs attention';
+      title = 'Make room for protein';
       body =
           'Good familiar options: extra dal or sambar, curd, eggs, paneer, fish, chicken, sprouts, or sundal.';
       icon = Icons.egg_alt_outlined;
@@ -381,9 +466,9 @@ class TodayScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.lime.withValues(alpha: .28),
+        color: AppColors.hero,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.lime),
+        border: Border.all(color: AppColors.line),
       ),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Icon(icon, color: AppColors.forest),
@@ -423,8 +508,9 @@ class TodayScreen extends StatelessWidget {
           Row(children: [
             const Icon(Icons.restaurant_menu_outlined, color: AppColors.forest),
             const SizedBox(width: 10),
-            Text('Next best choices',
-                style: Theme.of(context).textTheme.titleMedium),
+            Expanded(
+                child: Text('Next best choices',
+                    style: Theme.of(context).textTheme.titleMedium)),
           ]),
           const SizedBox(height: 10),
           for (final suggestion in suggestions.take(3))

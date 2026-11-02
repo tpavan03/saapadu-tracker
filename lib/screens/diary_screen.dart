@@ -33,7 +33,7 @@ class DiaryScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-                color: AppColors.ink, borderRadius: BorderRadius.circular(22)),
+                color: AppColors.hero, borderRadius: BorderRadius.circular(22)),
             child: Row(children: [
               Expanded(
                   child: _total('Calories', '${state.caloriesEaten.round()}',
@@ -124,10 +124,10 @@ class DiaryScreen extends StatelessWidget {
             direction: DismissDirection.endToStart,
             confirmDismiss: (_) => _confirmDelete(context, entry.food.name),
             background: Container(
-                color: AppColors.terracotta,
+                color: AppColors.dangerSurface,
                 alignment: Alignment.centerRight,
                 padding: const EdgeInsets.only(right: 20),
-                child: const Icon(Icons.delete_outline, color: Colors.white)),
+                child: const Icon(Icons.delete_outline, color: AppColors.ink)),
             onDismissed: (_) => state.deleteFood(entry.id),
             child: Container(
               decoration: const BoxDecoration(

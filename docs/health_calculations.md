@@ -236,11 +236,38 @@ Do not change the calorie equation solely because of BMI category or ethnicity. 
 
 ## Weight trend and recalculation
 
-- Permit daily weigh-ins, but present a 7-day rolling median once at least three readings exist.
-- Compare weekly medians; never label one day's increase as fat gain.
-- Recalculate the next day's target from current trend weight no more than once per week.
-- If actual trend differs from the estimate, show **“Your trend differs from the estimate”** and invite the user to check portions, imports, activity setting, medication/health changes, and clinician advice. Do not shame the user.
-- Do not automatically reduce calories in response to a short plateau. Water, glycogen, sodium, digestion, menstrual cycle, and measurement conditions can move scale weight independently of fat.
+Profile editing exposes name, age, equation reference, height, current weight,
+goal weight and activity settings. Current-weight changes create/correct a dated
+check-in. The latest dated reading sets profile weight; correcting an older
+reading does not replace it. A check-in is due seven days after the latest
+reading. Future dates and weights outside 30–350 kg are rejected.
+
+The observed-date estimate is a conservative product heuristic, not a clinically
+validated model or a reimplementation of the NIH Body Weight Planner:
+
+- Use valid readings from the latest 28 days, with one reading per local date.
+- Require at least three readings spanning fourteen days; otherwise label the
+  current calorie-plan estimate explicitly instead of inventing a trend.
+- Calculate pairwise kg/week slopes only across readings at least seven days
+  apart and take their median. This reduces the influence of isolated outliers
+  while working with weekly check-ins, without requiring daily weighing.
+- Project remaining weight from the latest reading date using that observed
+  direction and rate. Do not move the date forward daily without new evidence.
+- Show no trend arrival date for flat/opposing progress, an implausibly distant
+  forecast, a passed estimate without a fresh check-in, or observed loss faster
+  than the app's 0.9 kg/week gradual-loss planning limit.
+- Preserve the user's requested date separately. An explicit goal-plan save
+  commits its reviewed weekly pace; subsequent weigh-ins update maintenance and
+  the estimate rather than increasing the deficit to catch up to that date.
+- Never automatically cut calories in response to a short plateau. Historical
+  diary target snapshots remain unchanged. Water, glycogen, sodium, digestion,
+  menstrual cycle and measurement conditions can affect a reading.
+
+The gradual-loss boundary follows [CDC's description of gradual 1–2 lb/week
+loss](https://www.cdc.gov/healthy-weight-growth/losing-weight/index.html).
+[NIDDK's planner](https://www.niddk.nih.gov/health-information/weight-management/body-weight-planner)
+uses individualized planning and is intended for adults; this app's simpler
+check-in heuristic does not claim the same predictive model or medical accuracy.
 
 ## Sleep tracking
 

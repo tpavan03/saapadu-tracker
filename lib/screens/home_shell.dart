@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import '../theme.dart';
+import '../widgets/common.dart';
 import 'diary_screen.dart';
 import 'more_screen.dart';
 import 'progress_screen.dart';
@@ -27,7 +28,8 @@ class _HomeShellState extends State<HomeShell> {
           state: widget.state,
           onDiary: () => setState(() => index = 1),
           onActivity: () => setState(() => index = 2),
-          onFasting: () => setState(() => index = 3)),
+          onFasting: () => setState(() => index = 3),
+          onProgress: () => setState(() => index = 4)),
       DiaryScreen(state: widget.state),
       WorkoutScreen(state: widget.state),
       FastingScreen(state: widget.state),
@@ -52,7 +54,7 @@ class _HomeShellState extends State<HomeShell> {
                         const Padding(
                           padding: EdgeInsets.fromLTRB(24, 26, 18, 26),
                           child: Row(children: [
-                            _Logo(),
+                            SaapaduMark(size: 38),
                             SizedBox(width: 12),
                             Text('SAAPADU',
                                 style: TextStyle(
@@ -144,57 +146,48 @@ class _HomeShellState extends State<HomeShell> {
                   ),
                 ),
                 const VerticalDivider(width: 1),
-                Expanded(child: pages[index]),
+                Expanded(child: IndexedStack(index: index, children: pages)),
               ],
             ),
           );
         }
         return Scaffold(
-          body: pages[index],
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: index,
-            onDestinationSelected: (value) => setState(() => index = value),
-            destinations: const [
-              NavigationDestination(
-                  icon: Icon(Icons.home_outlined),
-                  selectedIcon: Icon(Icons.home_rounded),
-                  label: 'Today'),
-              NavigationDestination(
-                  icon: Icon(Icons.menu_book_outlined),
-                  selectedIcon: Icon(Icons.menu_book_rounded),
-                  label: 'Diary'),
-              NavigationDestination(
-                  icon: Icon(Icons.fitness_center_outlined),
-                  selectedIcon: Icon(Icons.fitness_center_rounded),
-                  label: 'Activity'),
-              NavigationDestination(
-                  icon: Icon(Icons.timelapse_outlined),
-                  selectedIcon: Icon(Icons.timelapse_rounded),
-                  label: 'Fasting'),
-              NavigationDestination(
-                  icon: Icon(Icons.show_chart_outlined),
-                  selectedIcon: Icon(Icons.show_chart_rounded),
-                  label: 'Progress'),
-              NavigationDestination(
-                  icon: Icon(Icons.grid_view_outlined),
-                  selectedIcon: Icon(Icons.grid_view_rounded),
-                  label: 'More'),
-            ],
-          ),
+          body: IndexedStack(index: index, children: pages),
+          bottomNavigationBar: DecoratedBox(
+              decoration: const BoxDecoration(
+                  border: Border(top: BorderSide(color: AppColors.line))),
+              child: NavigationBar(
+                selectedIndex: index,
+                onDestinationSelected: (value) => setState(() => index = value),
+                destinations: const [
+                  NavigationDestination(
+                      icon: Icon(Icons.home_outlined),
+                      selectedIcon: Icon(Icons.home_rounded),
+                      label: 'Today'),
+                  NavigationDestination(
+                      icon: Icon(Icons.menu_book_outlined),
+                      selectedIcon: Icon(Icons.menu_book_rounded),
+                      label: 'Diary'),
+                  NavigationDestination(
+                      icon: Icon(Icons.fitness_center_outlined),
+                      selectedIcon: Icon(Icons.fitness_center_rounded),
+                      label: 'Activity'),
+                  NavigationDestination(
+                      icon: Icon(Icons.timelapse_outlined),
+                      selectedIcon: Icon(Icons.timelapse_rounded),
+                      label: 'Fasting'),
+                  NavigationDestination(
+                      icon: Icon(Icons.show_chart_outlined),
+                      selectedIcon: Icon(Icons.show_chart_rounded),
+                      label: 'Progress'),
+                  NavigationDestination(
+                      icon: Icon(Icons.grid_view_outlined),
+                      selectedIcon: Icon(Icons.grid_view_rounded),
+                      label: 'More'),
+                ],
+              )),
         );
       },
     );
   }
-}
-
-class _Logo extends StatelessWidget {
-  const _Logo();
-  @override
-  Widget build(BuildContext context) => Container(
-        width: 38,
-        height: 38,
-        decoration: const BoxDecoration(
-            color: AppColors.forest, shape: BoxShape.circle),
-        child: const Icon(Icons.spa_outlined, color: AppColors.lime, size: 21),
-      );
 }

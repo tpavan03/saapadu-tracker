@@ -19,6 +19,14 @@ recent/frequent foods; Repeat last meal copies quantities after confirmation.
 Food deletion confirms the named item for both swipe and button paths. Saving
 food disables duplicate submission and preserves a retry path on error.
 
+The native workspace uses one dark Material theme across all six destinations,
+dialogs, date pickers and forms. Selected navigation icons use a dark foreground
+on the saffron indicator. Each destination retains its own scroll position and
+view state when switching tabs; long content stays vertically scrollable.
+320px layouts and larger system text must preserve meaningful labels and
+actions. Today provides a weekly-check-in route to Progress, with the due state
+and estimated goal read from AppState rather than invented presentation data.
+
 Fasting is optional, with 12:12 as the new-user default and neutral 14:10,16:8
 and custom-duration choices. Existing selected windows remain unchanged. Start
 requires the product’s eligibility confirmation; under-18/underweight profiles

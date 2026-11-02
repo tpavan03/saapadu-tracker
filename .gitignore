@@ -14,6 +14,10 @@ web/flutter_service_worker.js
 .env*
 test-results/
 premium-audit.json
+.secrets/
+android/key.properties
+*.jks
+*.keystore
 
 .vercel
 .env*

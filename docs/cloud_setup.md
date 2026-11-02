@@ -10,7 +10,7 @@ The tracker works locally without an account. Cloud sync adds recovery across br
 4. Enable Google under Supabase **Authentication → Providers** and paste the Google client ID and secret there.
 5. In Supabase **Authentication → URL Configuration**, add these redirect URLs:
    - `https://saapadu-tracker.vercel.app/` for the website.
-   - `com.example.saapadu://login-callback/` for the Android APK.
+   - `in.tpavan.saapadu://login-callback/` for the current native Android APK.
 6. Set the Supabase Site URL to `https://saapadu-tracker.vercel.app/`.
 7. If the project already used the original single-email policy, run `supabase/migrations/202609180001_multi_user_backup_policies.sql` once in SQL Editor. Each authenticated account is then isolated by its Supabase user ID.
 8. Build Flutter with the public project values:

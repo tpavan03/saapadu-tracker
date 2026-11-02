@@ -174,7 +174,7 @@ class _FastingScreenState extends State<FastingScreen> {
       Container(
           padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
-              color: AppColors.forest, borderRadius: BorderRadius.circular(32)),
+              color: AppColors.hero, borderRadius: BorderRadius.circular(32)),
           child: LayoutBuilder(builder: (context, box) {
             final dial = Semantics(
                 label: fast.isActive
@@ -254,7 +254,7 @@ class _FastingScreenState extends State<FastingScreen> {
               FilledButton.icon(
                   style: FilledButton.styleFrom(
                       backgroundColor: AppColors.lime,
-                      foregroundColor: AppColors.ink),
+                      foregroundColor: AppColors.onAccent),
                   onPressed: fast.isActive ? _end : _start,
                   icon: Icon(fast.isActive
                       ? Icons.stop_circle_outlined

@@ -1,12 +1,16 @@
 ---
 version: alpha
 colors:
-  primary: '#145C47'
-  ink: '#153C31'
-  background: '#F2F7F4'
-  surface: '#FFFFFF'
-  accent: '#F3C56B'
-  muted: '#61776C'
+  primary: '#A2DDC2'
+  ink: '#F4F2E9'
+  background: '#091719'
+  surface: '#12292B'
+  accent: '#E9BE75'
+  muted: '#AAC1BB'
+  hero: '#173F40'
+  onAccent: '#09201B'
+  line: '#2D4848'
+  dangerSurface: '#713D35'
 typography:
   display:
     fontFamily: 'Sora'
@@ -25,38 +29,50 @@ components:
     rounded: '{rounded.panel}'
   button:
     backgroundColor: '{colors.primary}'
-    textColor: '{colors.surface}'
+    textColor: '{colors.onAccent}'
     rounded: '{rounded.control}'
   timer:
-    backgroundColor: '{colors.primary}'
+    backgroundColor: '{colors.hero}'
     textColor: '{colors.accent}'
     rounded: '{rounded.feature}'
   caption:
     textColor: '{colors.muted}'
   page:
     backgroundColor: '{colors.background}'
+  destructiveSwipe:
+    backgroundColor: '{colors.dangerSurface}'
+    textColor: '{colors.ink}'
+  divider:
+    backgroundColor: '{colors.line}'
 ---
 
 # Saapadu
 
 ## Overview
 
-A personal South Indian food diary and wellness tool. Preserve the familiar
-green identity while giving daily routines the clarity of a thoughtfully laid
-out meal: the energy ring is the plate, macros are its compartments, and every
-action has a distinct place. This is a product interface, not a fitness advert.
-The signature is an emerald circular timer/energy plate with saffron progress.
+A personal South Indian food diary and wellness tool, now built for a native
+phone routine. The visual direction is an after-hours kitchen: deep teal,
+rice-colored type, green leaves and warm brass. Its signature is the open
+saffron energy plate with three small rice-grain marks, paired with an original
+steaming bowl wordmark. Keep the surrounding workspace quiet and practical.
+This is a product interface, not a fitness advert.
 Avoid weight-loss promises, shame, calorie rewards for fasting, and generic
 medical dashboards. India is the primary audience; English uses en-IN dates.
 
 ## Colors
 
 The normative runtime owner is `AppColors` in `lib/theme.dart`. Above values map
-directly to forest, ink, cream, paper, lime and muted respectively; `lime` retains
-its legacy API name but is now saffron. Coral marks food/activity accents, blue
-marks water, and neither color judges a person’s progress. Change tokens and
-this document together. White cards sit on cool mint; deep green is reserved
-for the most useful daily summary and active timer.
+directly to forest, ink, cream, paper, lime, muted, hero, onAccent and line;
+`lime` retains its legacy API name but is saffron. `forest` and `ink` are
+foregrounds. Feature backgrounds must use `hero`, and text/icons on filled
+saffron or mint controls use `onAccent`; never reuse a foreground token as a
+hero background. Pale coral #F3AC93 marks food/activity, blue #A0D3ED marks water,
+and lavender #C5B9EA marks sleep. Neither color judges a person’s progress.
+Destructive swipe surfaces use the separate dark clay dangerSurface #713D35
+with light icons; the pale coral foreground is not used as a white-icon fill.
+Change tokens and this document together. The native workspace is dark by
+default, including dialogs, pickers, menus, sheets, keyboard-facing forms and
+navigation; no stray white cards or neon glow.
 
 ## Typography
 
@@ -68,27 +84,38 @@ mapping. Preserve platform fallback for Telugu and other user-entered scripts.
 ## Layout
 
 PageFrame owns natural vertical scrolling, safe areas, 20px side padding and a
-1120px maximum content width. At 900px the bottom navigation becomes a 232px
+1120px maximum content width. Its owned scroll controller gives every page a
+visible, usable scrollbar. At 900px the bottom navigation becomes a 232px
 rail. Six destinations have the same order on both surfaces: Today, Diary,
 Activity, Fasting, Progress, More. Pair related cards on wide screens and stack
-them on phones. Lists remain readable at 390px; never hide primary actions.
+them on phones. An IndexedStack preserves each destination's scroll and local
+view state when switching tabs. Lists remain readable at 320px and larger text;
+never hide primary actions. The wordmark may fit its available width, while
+functional text wraps and retains the user's text scale. Wellness signal cards
+become one column when narrow or when larger text needs the room.
 
 ## Elevation & Depth
 
-Cards are flat, bordered and quietly rounded. Material sheets and dialogs may
+Cards are flat, bordered and quietly rounded. Feature panels use the deeper
+teal surface without scattered gradients or decorative lighting. Material sheets and dialogs may
 use platform elevation. Do not scatter shadows or gradients across dashboard
 metrics. Loading and save feedback reserve existing control geometry.
 
 ## Shapes
 
-22px cards, 32px feature panels, and 16px controls follow the existing generous
+22px cards, 28–32px feature panels, and 16px controls follow the existing generous
 shape language. Circular icon backgrounds identify habits. Material rounded
 icons are the canonical icon set; they always have labels/tooltips for actions.
 
 ## Components
 
 ThemeData owns shared cards, controls, chips, typography and scrollbar styles.
-PageFrame, SectionEyebrow, MacroBar and CalorieRing are shared presentation.
+PageFrame, SaapaduMark, SectionEyebrow, MacroBar and CalorieRing are shared presentation.
+The original SaapaduMark is a cooking bowl, rising steam and rice grains rather
+than a generic medical or fitness symbol. CalorieRing is an accessible visual
+of logged intake against the estimated budget; it never invents completion or
+calls an over-budget day a failure. Today's weekly check-in card navigates to
+the actual Progress workflow and derives its due state from saved readings.
 Material AlertDialog/bottom sheets own confirmations and focus. Reduced-motion
 settings use Material defaults; no decorative infinite animation is added.
 

@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'calorie_engine.dart';
 import 'cloud_sync_service.dart';
 import 'models.dart';
+import 'weight_trend.dart';
 
 class AppState extends ChangeNotifier {
   AppState({required this.cloud}) {
@@ -16,7 +17,17 @@ class AppState extends ChangeNotifier {
 
   final CloudSyncService cloud;
   SharedPreferences? _prefs;
-  bool _reconcilingCloud = false;
+  final Set<String> _reconcilingCloudUsers = {};
+  String? _switchingCloudUserId;
+  String? _restoringCloudUserId;
+  String? _firstLinkPendingUserId;
+  String? _retainedGuestBackup;
+  bool _restoringLinkedBackup = false;
+  bool get cloudRestoring => _restoringCloudUserId != null;
+  String? get retainedGuestBackup => _retainedGuestBackup;
+  bool get guestLinkPending =>
+      _firstLinkPendingUserId == cloud.user?.id &&
+      _firstLinkPendingUserId != null;
   int _cloudRevision = 0;
   DateTime lastChangedAt = DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
   bool ready = false;
@@ -32,6 +43,8 @@ class AppState extends ChangeNotifier {
 
   Future<void> initialize() async {
     _prefs = await SharedPreferences.getInstance();
+    _retainedGuestBackup = _prefs!.getString('pending_guest_backup');
+    _firstLinkPendingUserId = _prefs!.getString('guest_link_pending_user_id');
     lastChangedAt = DateTime.tryParse(
           _prefs!.getString('last_changed_at') ?? '',
         )?.toUtc() ??
@@ -68,12 +81,13 @@ class AppState extends ChangeNotifier {
         jsonDecode(rawFasting) as Map<String, dynamic>,
       );
     }
+    if (cloud.authorized) {
+      // Local data opens immediately. A different owner is cleared inside the
+      // switch before its first await; blank accounts expose cloudRestoring.
+      unawaited(_switchCloudUserIfNeeded());
+    }
     ready = true;
     notifyListeners();
-    if (cloud.authorized) {
-      await _switchCloudUserIfNeeded();
-      await _reconcileCloud();
-    }
   }
 
   List<FoodItem> get allFoods => [...customFoods, ...foods];
@@ -99,8 +113,8 @@ class AppState extends ChangeNotifier {
       ? 2000
       : CalorieEngine.dailyTarget(
           profile!.addExerciseCalories
-              ? profile!.copyWith(activityLevel: 'Sedentary')
-              : profile!,
+              ? profile!.copyWith(activityLevel: 'Sedentary', goalDate: null)
+              : profile!.copyWith(goalDate: null),
         );
   CaloriePlanRecommendation get planRecommendation {
     final p = profile;
@@ -118,12 +132,28 @@ class AppState extends ChangeNotifier {
         ),
       );
     }
-    final planningProfile =
-        p.addExerciseCalories ? p.copyWith(activityLevel: 'Sedentary') : p;
+    // The requested deadline is an intention, not a reason to increase the
+    // deficit after a slow week. Only an explicit plan edit changes the pace.
+    final planningProfile = p.addExerciseCalories
+        ? p.copyWith(activityLevel: 'Sedentary', goalDate: null)
+        : p.copyWith(goalDate: null);
     return CalorieEngine.planRecommendation(planningProfile);
   }
 
-  DateTime? get projectedGoalDate => planRecommendation.projectedGoalDate;
+  WeightForecast get weightForecast => WeightTrend.forecast(profile!, weights,
+      modelDate: planRecommendation.projectedGoalDate);
+  DateTime? get projectedGoalDate =>
+      profile == null ? null : weightForecast.estimatedDate;
+  DateTime? get nextWeightCheckInDate {
+    final last = WeightTrend.latestReadingDate(weights);
+    return last?.add(const Duration(days: 7));
+  }
+
+  bool get weightCheckInDue {
+    final due = nextWeightCheckInDate;
+    final now = DateTime.now();
+    return due == null || !DateTime(now.year, now.month, now.day).isBefore(due);
+  }
 
   int get baseCalorieTarget =>
       selectedWellness.baseCalorieTarget ?? _calculatedBaseTarget;
@@ -162,13 +192,15 @@ class AppState extends ChangeNotifier {
   double get fiberTarget =>
       selectedWellness.fiberTarget ?? _calculatedFiberTarget;
 
-  Future<void> saveProfile(Profile value) async {
+  Future<void> saveProfile(Profile value, {DateTime? now}) async {
+    final changedWeight =
+        profile == null || profile!.currentWeightKg != value.currentWeightKg;
     profile = value;
-    if (weights.isEmpty) {
-      weights.add(
-        WeightEntry(
-            date: dateKey(DateTime.now()), weightKg: value.currentWeightKg),
-      );
+    if (weights.isEmpty || changedWeight) {
+      final today = dateKey(now ?? DateTime.now());
+      weights.removeWhere((entry) => entry.date == today);
+      weights.add(WeightEntry(date: today, weightKg: value.currentWeightKg));
+      weights.sort((a, b) => a.date.compareTo(b.date));
       await _persistWeights();
     }
     await _refreshTodayTargetSnapshot();
@@ -220,13 +252,22 @@ class AppState extends ChangeNotifier {
     await _recordChange();
   }
 
-  Future<void> logWeight(double kg) async {
-    final today = dateKey(DateTime.now());
-    weights.removeWhere((entry) => entry.date == today);
-    weights.add(WeightEntry(date: today, weightKg: kg));
+  Future<void> logWeight(double kg, {DateTime? date, DateTime? now}) async {
+    final reference = now ?? DateTime.now();
+    final readingDate = date ?? reference;
+    final day = DateTime(readingDate.year, readingDate.month, readingDate.day);
+    if (!kg.isFinite || kg < 30 || kg > 350) {
+      throw const FormatException('Enter a weight between 30 and 350 kg.');
+    }
+    if (day.isAfter(DateTime(reference.year, reference.month, reference.day))) {
+      throw const FormatException('A check-in cannot be dated in the future.');
+    }
+    final key = dateKey(day);
+    weights.removeWhere((entry) => entry.date == key);
+    weights.add(WeightEntry(date: key, weightKg: kg));
     weights.sort((a, b) => a.date.compareTo(b.date));
     if (profile != null) {
-      profile = profile!.copyWith(currentWeightKg: kg);
+      profile = profile!.copyWith(currentWeightKg: weights.last.weightKg);
       await _prefs!.setString('profile', jsonEncode(profile!.toJson()));
       await _refreshTodayTargetSnapshot();
     }
@@ -446,59 +487,113 @@ class AppState extends ChangeNotifier {
       'last_changed_at',
       lastChangedAt.toIso8601String(),
     );
+    if (guestLinkPending && profile != null && !_restoringLinkedBackup) {
+      _retainedGuestBackup = exportBackup();
+      await _prefs!.setString('pending_guest_backup', _retainedGuestBackup!);
+    }
     notifyListeners();
     cloud.scheduleUpload(_uploadCloudNow);
   }
 
   Future<void> _uploadCloudNow() async {
     if (!cloud.authorized || profile == null) return;
+    // A newer anonymous diary is not permission to overwrite an existing
+    // account. Keep changes locally until its first backup lookup succeeds.
+    if (guestLinkPending) {
+      if (!_restoringLinkedBackup) {
+        _retainedGuestBackup = exportBackup();
+        await _prefs!.setString('pending_guest_backup', _retainedGuestBackup!);
+      }
+      return;
+    }
     _cloudRevision += 1;
     await cloud.uploadBackup(exportBackupMap(), revision: _cloudRevision);
   }
 
   void _onCloudChanged() {
-    notifyListeners();
     if (ready && cloud.authorized) {
       unawaited(_switchCloudUserIfNeeded());
+    } else {
+      notifyListeners();
     }
   }
 
   Future<void> _switchCloudUserIfNeeded() async {
     final userId = cloud.user?.id;
     if (userId == null || _prefs == null) return;
-    final storedUserId = _prefs!.getString('cloud_user_id');
-    if (storedUserId != null && storedUserId != userId) {
-      // A second account on the same browser must never inherit the first
-      // account's local diary while its cloud backup is being restored.
-      profile = null;
-      customFoods = [];
-      logs = [];
-      workouts = [];
-      weights = [];
-      wellness = {};
-      fasting = const FastingState();
-      selectedDate = DateTime.now();
-      await Future.wait([
-        _prefs!.remove('profile'),
-        _prefs!.remove('custom_foods'),
-        _prefs!.remove('food_logs'),
-        _prefs!.remove('workouts'),
-        _prefs!.remove('weights'),
-        _prefs!.remove('wellness'),
-        _prefs!.remove('fasting'),
-      ]);
+    if (_switchingCloudUserId == userId) return;
+    _switchingCloudUserId = userId;
+    try {
+      final storedUserId = _prefs!.getString('cloud_user_id');
+      if (storedUserId == null && profile != null && !guestLinkPending) {
+        _firstLinkPendingUserId = userId;
+        _retainedGuestBackup = exportBackup();
+        _restoringCloudUserId = userId;
+        // Hide the anonymous profile while resolving account ownership. Its
+        // complete local payload is retained before any account data is loaded.
+        profile = null;
+        await _prefs!.setString('pending_guest_backup', _retainedGuestBackup!);
+        await _prefs!.setString('guest_link_pending_user_id', userId);
+      } else if (guestLinkPending) {
+        profile = null;
+        _restoringCloudUserId = userId;
+      }
+      if (storedUserId != null && storedUserId != userId) {
+        // A second account on the same browser must never inherit the first
+        // account's local diary while its cloud backup is being restored.
+        profile = null;
+        customFoods = [];
+        logs = [];
+        workouts = [];
+        weights = [];
+        wellness = {};
+        fasting = const FastingState();
+        selectedDate = DateTime.now();
+        _cloudRevision = 0;
+        lastChangedAt = DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+        _restoringCloudUserId = userId;
+        await Future.wait([
+          _prefs!.remove('profile'),
+          _prefs!.remove('custom_foods'),
+          _prefs!.remove('food_logs'),
+          _prefs!.remove('workouts'),
+          _prefs!.remove('weights'),
+          _prefs!.remove('wellness'),
+          _prefs!.remove('fasting'),
+          _prefs!.remove('last_changed_at'),
+        ]);
+      }
+      if (profile == null) _restoringCloudUserId = userId;
+      await _prefs!.setString('cloud_user_id', userId);
+      if (cloud.user?.id != userId) return;
+      notifyListeners();
+      await _reconcileCloud();
+    } finally {
+      if (_switchingCloudUserId == userId) _switchingCloudUserId = null;
+      if (_restoringCloudUserId == userId) {
+        _restoringCloudUserId = null;
+        notifyListeners();
+      }
     }
-    await _prefs!.setString('cloud_user_id', userId);
-    notifyListeners();
-    await _reconcileCloud();
   }
 
   Future<void> _reconcileCloud() async {
-    if (_reconcilingCloud || !cloud.authorized) return;
-    _reconcilingCloud = true;
+    final owner = cloud.user?.id;
+    if (!cloud.authorized ||
+        owner == null ||
+        _reconcilingCloudUsers.contains(owner)) {
+      return;
+    }
+    _reconcilingCloudUsers.add(owner);
     try {
-      final remote = await cloud.fetchBackup();
+      final remote =
+          await cloud.fetchBackup().timeout(const Duration(seconds: 12));
+      if (!cloud.authorized || cloud.user?.id != owner) return;
       if (remote == null) {
+        if (guestLinkPending) {
+          await _restoreGuestDraftIfNeeded();
+          await _completeFirstLink(owner);
+        }
         if (profile != null) await _uploadCloudNow();
         return;
       }
@@ -507,16 +602,45 @@ class AppState extends ChangeNotifier {
             remote.payload['lastChangedAt'] as String? ?? '',
           )?.toUtc() ??
           remote.updatedAt;
-      if (profile == null || remoteChangedAt.isAfter(lastChangedAt)) {
-        await _restoreBackupMap(remote.payload, fromCloud: true);
+      if (guestLinkPending ||
+          profile == null ||
+          remoteChangedAt.isAfter(lastChangedAt)) {
+        _restoringLinkedBackup = guestLinkPending;
+        try {
+          await _restoreBackupMap(remote.payload, fromCloud: true);
+          await _completeFirstLink(owner);
+        } finally {
+          _restoringLinkedBackup = false;
+        }
       } else if (lastChangedAt.isAfter(remoteChangedAt)) {
         await _uploadCloudNow();
       }
     } catch (_) {
       // Local logging remains available; a later auth/network event retries.
+      if (cloud.user?.id == owner && guestLinkPending) {
+        await _restoreGuestDraftIfNeeded();
+      }
     } finally {
-      _reconcilingCloud = false;
+      _reconcilingCloudUsers.remove(owner);
     }
+  }
+
+  Future<void> _restoreGuestDraftIfNeeded() async {
+    if (profile != null || _retainedGuestBackup == null) return;
+    _restoringLinkedBackup = true;
+    try {
+      final payload =
+          Map<String, dynamic>.from(jsonDecode(_retainedGuestBackup!) as Map);
+      await _restoreBackupMap(payload, fromCloud: true);
+    } finally {
+      _restoringLinkedBackup = false;
+    }
+  }
+
+  Future<void> _completeFirstLink(String owner) async {
+    if (_firstLinkPendingUserId != owner || cloud.user?.id != owner) return;
+    await _prefs!.remove('guest_link_pending_user_id');
+    _firstLinkPendingUserId = null;
   }
 
   @override

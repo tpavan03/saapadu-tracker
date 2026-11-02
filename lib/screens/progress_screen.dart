@@ -8,6 +8,7 @@ import '../calorie_engine.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'plan_screen.dart';
+import 'weight_check_in_screen.dart';
 
 class ProgressScreen extends StatelessWidget {
   const ProgressScreen({super.key, required this.state});
@@ -64,6 +65,8 @@ class ProgressScreen extends StatelessWidget {
         ]);
       }),
       const SizedBox(height: 18),
+      _checkInCard(context),
+      const SizedBox(height: 18),
       Card(
           child: Padding(
         padding: const EdgeInsets.all(22),
@@ -91,6 +94,11 @@ class ProgressScreen extends StatelessWidget {
       )),
       const SizedBox(height: 18),
       _planCard(context),
+      TextButton.icon(
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => WeightHistoryScreen(state: state))),
+          icon: const Icon(Icons.history_rounded),
+          label: const Text('View and edit weight check-ins')),
       const SizedBox(height: 18),
       LayoutBuilder(builder: (context, box) {
         final bmi = CalorieEngine.bmi(p);
@@ -121,17 +129,18 @@ class ProgressScreen extends StatelessWidget {
                                     fontWeight: FontWeight.w900,
                                     letterSpacing: -1)),
                             const SizedBox(width: 8),
-                            Padding(
-                                padding: const EdgeInsets.only(bottom: 7),
-                                child: Text(CalorieEngine.bmiLabel(bmi),
-                                    style: const TextStyle(
-                                        color: AppColors.muted))),
+                            Expanded(
+                                child: Padding(
+                                    padding: const EdgeInsets.only(bottom: 7),
+                                    child: Text(CalorieEngine.bmiLabel(bmi),
+                                        style: const TextStyle(
+                                            color: AppColors.muted)))),
                           ]),
                       const SizedBox(height: 12),
                       const Text(
                           'BMI is a screening measure. Body composition and South Asian metabolic risk can make the full picture different.',
-                          style: TextStyle(
-                              fontSize: 12, color: AppColors.muted)),
+                          style:
+                              TextStyle(fontSize: 12, color: AppColors.muted)),
                     ]),
               ))),
           SizedBox(
@@ -149,14 +158,17 @@ class ProgressScreen extends StatelessWidget {
                               letterSpacing: 1,
                               color: AppColors.muted)),
                       const SizedBox(height: 11),
-                      Text('${state.planRecommendation.projectedWeeklyRateKg.toStringAsFixed(2)} kg / week',
+                      Text(
+                          '${(state.weightForecast.weeklyChangeKg?.abs() ?? state.planRecommendation.projectedWeeklyRateKg).toStringAsFixed(2)} kg / week',
                           style: const TextStyle(
                               fontSize: 23, fontWeight: FontWeight.w900)),
                       const SizedBox(height: 10),
                       Text(
-                          state.planRecommendation.usesManualTarget
-                              ? 'Calculated from your custom calorie target. Change that target to move the forecast date.'
-                              : 'Daily scale changes are mostly water. Compare weekly averages and adjust after 2–3 consistent weeks.',
+                          state.weightForecast.usesObservedTrend
+                              ? 'Observed from your recent check-ins, rather than a promised weekly result.'
+                              : state.planRecommendation.usesManualTarget
+                                  ? 'Calculated from your custom calorie target. Change that target to move the forecast date.'
+                                  : 'Daily scale changes are mostly water. Compare weekly averages and adjust after 2–3 consistent weeks.',
                           style: const TextStyle(
                               fontSize: 12, color: AppColors.muted)),
                     ]),
@@ -193,69 +205,95 @@ class ProgressScreen extends StatelessWidget {
             ]),
           )));
 
+  Widget _checkInCard(BuildContext context) {
+    final due = state.nextWeightCheckInDate;
+    final isDue = state.weightCheckInDue;
+    return Card(
+        child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(children: [
+              const Icon(Icons.calendar_month_outlined,
+                  color: AppColors.forest),
+              const SizedBox(width: 14),
+              Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    Text(
+                        isDue
+                            ? 'Your weekly check-in is ready'
+                            : 'Your next check-in',
+                        style: Theme.of(context).textTheme.titleMedium),
+                    Text(
+                        isDue
+                            ? 'A fresh reading helps keep your forecast current.'
+                            : DateFormat('EEEE, d MMMM').format(due!),
+                        style: const TextStyle(
+                            color: AppColors.muted, fontSize: 12)),
+                  ])),
+              const SizedBox(width: 8),
+              TextButton(
+                  onPressed: () => _logWeight(context),
+                  child: const Text('Check in')),
+            ])));
+  }
+
   Widget _planCard(BuildContext context) {
     final profile = state.profile!;
     final plan = state.planRecommendation;
-    final date = plan.projectedGoalDate;
+    final forecast = state.weightForecast;
+    final date = forecast.estimatedDate;
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(22),
-        child: Row(children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppColors.lime.withValues(alpha: .4),
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: const Icon(Icons.route_outlined, color: AppColors.forest),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+        child: Padding(
+            padding: const EdgeInsets.all(22),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                const Icon(Icons.route_outlined, color: AppColors.forest),
+                const SizedBox(width: 12),
+                Expanded(
+                    child: Text(
+                        forecast.usesObservedTrend
+                            ? 'Your updated trend estimate'
+                            : 'Your goal estimate',
+                        style: Theme.of(context).textTheme.titleMedium)),
+              ]),
+              const SizedBox(height: 16),
+              Text(
+                  date == null
+                      ? 'More consistent readings needed'
+                      : DateFormat('d MMMM y').format(date),
+                  style: Theme.of(context).textTheme.headlineMedium),
+              const SizedBox(height: 8),
+              Text(
+                  '${profile.goalWeightKg.toStringAsFixed(1)} kg goal · ${plan.effectiveTarget} kcal daily target',
+                  style: const TextStyle(color: AppColors.muted)),
+              const SizedBox(height: 12),
+              Text(forecast.explanation,
+                  style: const TextStyle(
+                      color: AppColors.muted, fontSize: 12, height: 1.6)),
+              if (profile.goalDate != null) ...[
+                const SizedBox(height: 10),
                 Text(
-                    date == null
-                        ? 'Goal plan'
-                        : 'You will reach ${profile.goalWeightKg.toStringAsFixed(1)} kg by ${DateFormat('d MMMM y').format(date)}',
-                    style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 3),
-                Text(
-                  plan.usesManualTarget
-                      ? '${plan.effectiveTarget} kcal custom • ${plan.projectedWeeklyRateKg.toStringAsFixed(2)} kg/week'
-                      : '${plan.recommendedTarget} kcal recommended • ${plan.projectedWeeklyRateKg.toStringAsFixed(2)} kg/week',
-                  style: const TextStyle(color: AppColors.muted, fontSize: 12),
-                ),
-                if (date != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    'Estimated completion: ${DateFormat('d MMMM y').format(date)} • updates after each weigh-in',
-                    style: const TextStyle(
-                        color: AppColors.forest,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700),
-                  ),
-                ],
+                    'Your requested date: ${DateFormat('d MMMM y').format(profile.goalDate!)}',
+                    style: const TextStyle(fontSize: 12)),
               ],
-            ),
-          ),
-          FilledButton.tonal(
-            onPressed: () => PlanScreen.open(context, state),
-            child: const Text('Adjust plan'),
-          ),
-        ]),
-      ),
-    );
+              if (forecast.usesObservedTrend && forecast.modelDate != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                    'Calorie-plan estimate: ${DateFormat('d MMMM y').format(forecast.modelDate!)}',
+                    style:
+                        const TextStyle(color: AppColors.muted, fontSize: 12)),
+              ],
+              const SizedBox(height: 16),
+              FilledButton.tonal(
+                  onPressed: () => PlanScreen.open(context, state),
+                  child: const Text('Adjust goal plan')),
+            ])));
   }
 
-  Future<void> _logWeight(BuildContext context) async {
-    final value = await askNumber(context,
-        title: 'Log weight',
-        label: 'Weight (kg)',
-        initial: state.profile!.currentWeightKg);
-    if (value != null && value >= 25 && value <= 400) state.logWeight(value);
-  }
+  Future<void> _logWeight(BuildContext context) =>
+      WeightCheckInScreen.open(context, state);
 }
 
 class _WeightChart extends CustomPainter {
