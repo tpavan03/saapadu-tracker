@@ -3,11 +3,11 @@
 Practical guides to using and maintaining the current app. This index is populated as source-checked guides are published. See [the maintenance campaign](../maintenance-campaign.md) for its scope, schedule and stop controls.
 
 <!-- maintenance:begin -->
-Published guides: **0 / 15**.
+Published guides: **1 / 15**.
 
 | Guide | Status |
 | --- | --- |
-| Use native sign-in and offline mode | Queued |
+| [Use native sign-in and offline mode](native-signin-and-offline.md) | Published 2026-11-03 |
 | Edit body measurements and routine | Queued |
 | Record and correct dated weight check-ins | Queued |
 | Understand requested and estimated goal dates | Queued |

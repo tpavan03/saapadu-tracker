@@ -1,4 +1,12 @@
 {
   "schema": 1,
-  "completed": []
+  "completed": [
+    {
+      "id": "native-signin-and-offline",
+      "slot": 0,
+      "published_date": "2026-11-03",
+      "published_at": "2026-11-02T19:09:29.019800+00:00",
+      "source_commit": "bc1408bcbe1a9515f56a7f1920797ef7a0fafa80"
+    }
+  ]
 }
