@@ -7,6 +7,13 @@
       "published_date": "2026-11-03",
       "published_at": "2026-11-02T19:09:29.019800+00:00",
       "source_commit": "bc1408bcbe1a9515f56a7f1920797ef7a0fafa80"
+    },
+    {
+      "id": "edit-body-profile",
+      "slot": 3,
+      "published_date": "2026-11-09",
+      "published_at": "2026-11-08T19:43:36.958016+00:00",
+      "source_commit": "9acdef7789f827f0e404a10ab0de0e9c9f36a588"
     }
   ]
 }
