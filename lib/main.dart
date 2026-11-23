@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 
 import 'app_state.dart';
 import 'cloud_sync_service.dart';
+import 'health_connect.dart';
+import 'reminder_service.dart';
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
 import 'screens/onboarding_screen.dart';
@@ -20,12 +22,18 @@ Future<void> main() async {
         ['Sora'], await rootBundle.loadString('assets/fonts/OFL-Sora.txt'));
   });
   final cloud = CloudSyncService();
-  final state = AppState(cloud: cloud);
+  final state = AppState(
+      cloud: cloud,
+      health: HealthBridge.platform(),
+      reminderScheduler: LocalNotificationScheduler.platform());
   runApp(SaapaduApp(
       state: state,
       bootstrap: () async {
         await cloud.initialize();
         await state.initialize();
+        // Health Connect sync and reminder planning on open; failures never
+        // block the diary.
+        unawaited(state.onAppResumed());
       }));
 }
 
@@ -38,7 +46,7 @@ class SaapaduApp extends StatefulWidget {
   State<SaapaduApp> createState() => _SaapaduAppState();
 }
 
-class _SaapaduAppState extends State<SaapaduApp> {
+class _SaapaduAppState extends State<SaapaduApp> with WidgetsBindingObserver {
   bool _continueLocally = false;
   String? _startupError;
 
@@ -46,7 +54,15 @@ class _SaapaduAppState extends State<SaapaduApp> {
   void initState() {
     super.initState();
     widget.state.cloud.addListener(_onAuthChanged);
+    WidgetsBinding.instance.addObserver(this);
     if (widget.bootstrap != null) unawaited(_startApp());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState lifecycle) {
+    if (lifecycle == AppLifecycleState.resumed) {
+      unawaited(widget.state.onAppResumed());
+    }
   }
 
   Future<void> _startApp() async {
@@ -70,6 +86,7 @@ class _SaapaduAppState extends State<SaapaduApp> {
   @override
   void dispose() {
     widget.state.cloud.removeListener(_onAuthChanged);
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 

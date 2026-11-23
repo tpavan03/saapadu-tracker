@@ -115,7 +115,7 @@ void main() {
       final atLimit = profile(
         currentWeightKg: 120,
         goalWeightKg: 90,
-        weeklyGoalKg: 0.9,
+        weeklyGoalKg: 1.0,
       );
       final aboveLimit = profile(
         currentWeightKg: 120,
@@ -189,9 +189,9 @@ void main() {
       );
 
       expect(result.requiredWeeklyRateKg, closeTo(2, 0.0001));
-      expect(result.plannedWeeklyRateKg, 0.9);
+      expect(result.plannedWeeklyRateKg, 1.0);
       expect(result.safety, GoalPlanSafety.unsafe);
-      expect(result.earliestSafeDate, DateTime(2025, 8, 18));
+      expect(result.earliestSafeDate, DateTime(2025, 8, 10));
     });
 
     test('treats a past date with an unfinished goal as unsafe', () {
@@ -293,14 +293,14 @@ void main() {
       final base = profile(currentWeightKg: 80, goalWeightKg: 70);
       final maintenance = CalorieEngine.maintenance(base, today: referenceDate);
       final result = CalorieEngine.planRecommendation(
-        base.copyWith(manualCalorieTarget: (maintenance - 1100).round()),
+        base.copyWith(manualCalorieTarget: (maintenance - 1300).round()),
         today: referenceDate,
       );
 
-      expect(result.projectedWeeklyRateKg, closeTo(1.0, .01));
-      expect(result.projectedGoalDate, DateTime(2025, 8, 10));
+      expect(result.projectedWeeklyRateKg, closeTo(1.18, .01));
+      expect(result.projectedGoalDate, DateTime(2025, 7, 31));
       expect(result.isSafe, isFalse);
-      expect(result.earliestSafeDate, DateTime(2025, 8, 18));
+      expect(result.earliestSafeDate, DateTime(2025, 8, 10));
     });
   });
 

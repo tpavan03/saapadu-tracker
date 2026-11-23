@@ -50,7 +50,7 @@ class CaloriePlanRecommendation {
 class CalorieEngine {
   const CalorieEngine._();
 
-  static const double maxAutomaticWeeklyLossKg = 0.9;
+  static const double maxAutomaticWeeklyLossKg = 1.0;
 
   static int age(Profile profile, {DateTime? today}) {
     return (today ?? DateTime.now()).year - profile.birthYear;

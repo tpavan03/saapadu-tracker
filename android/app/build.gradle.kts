@@ -14,10 +14,14 @@ val releaseProperties = Properties().apply {
 
 android {
     namespace = "in.tpavan.saapadu"
-    compileSdk = flutter.compileSdkVersion
+    // health 14 (Health Connect client 1.2) and flutter_local_notifications 23
+    // compile against API 37.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // flutter_local_notifications needs core library desugaring.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -26,7 +30,10 @@ android {
         applicationId = "in.tpavan.saapadu"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 24
+        // Health Connect's client library (via the health plugin) needs API 26.
+        // Health Connect itself runs on Android 9+; older phones keep every
+        // other feature and simply do not see the Health Connect option.
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
@@ -66,4 +73,8 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

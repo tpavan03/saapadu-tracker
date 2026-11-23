@@ -184,7 +184,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     validator: (v) =>
                                         int.tryParse(v ?? '') == null
                                             ? 'Enter a whole age'
-                                            : number(v, 18, 120, 'years')),
+                                            : number(v, 16, 120, 'years')),
                                 const SizedBox(height: 16),
                                 DropdownButtonFormField<String>(
                                     initialValue: sex,

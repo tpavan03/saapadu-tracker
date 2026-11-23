@@ -104,11 +104,11 @@ void main() {
         find.widgetWithText(TextFormField, 'Current weight'), findsOneWidget);
     expect(find.widgetWithText(TextFormField, 'Height'), findsOneWidget);
     expect(find.widgetWithText(TextFormField, 'Age'), findsOneWidget);
-    await tester.enterText(find.widgetWithText(TextFormField, 'Age'), '17');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Age'), '15');
     await tester.ensureVisible(find.text('Save profile'));
     await tester.tap(find.text('Save profile'));
     await tester.pumpAndSettle();
-    expect(find.text('Enter 18.0–120.0 years'), findsOneWidget);
+    expect(find.text('Enter 16.0–120.0 years'), findsOneWidget);
     expect(state.profile!.birthYear, 1990);
     await tester.pumpWidget(const SizedBox());
     state.dispose();

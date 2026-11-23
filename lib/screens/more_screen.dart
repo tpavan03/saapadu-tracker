@@ -6,12 +6,16 @@ import 'package:intl/intl.dart';
 import '../app_state.dart';
 import '../calorie_engine.dart';
 import '../cloud_sync_service.dart';
+import '../health_connect.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'plan_screen.dart';
 import 'fasting_screen.dart';
 import 'profile_screen.dart';
 import 'login_screen.dart';
+import 'combos_screen.dart';
+import 'reminder_settings_screen.dart';
+import 'supplements_screen.dart';
 
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key, required this.state});
@@ -43,13 +47,18 @@ class MoreScreen extends StatelessWidget {
                 onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute<void>(
-                        builder: (_) => FastingScreen(state: state))))),
+                        builder: (_) => Scaffold(
+                            appBar: AppBar(title: const Text('Fasting')),
+                            body: FastingScreen(state: state)))))),
         const SizedBox(height: 18),
         LayoutBuilder(builder: (context, box) {
           final w = box.maxWidth > 760 ? (box.maxWidth - 12) / 2 : box.maxWidth;
           return Wrap(spacing: 12, runSpacing: 12, children: [
             SizedBox(width: w, child: _cloudCard(context)),
             SizedBox(width: w, child: _profileCard(context)),
+            SizedBox(width: w, child: _routineCard(context)),
+            if (state.health.supported)
+              SizedBox(width: w, child: _HealthConnectCard(state: state)),
             SizedBox(width: w, child: _dataCard(context)),
             SizedBox(width: w, child: _targetCard(context)),
             SizedBox(width: w, child: _sourceCard(context)),
@@ -315,6 +324,40 @@ class MoreScreen extends StatelessWidget {
         ]),
       ));
 
+  Widget _routineCard(BuildContext context) => Card(
+        child: Column(children: [
+          ListTile(
+            contentPadding: const EdgeInsets.fromLTRB(20, 8, 16, 0),
+            leading: const Icon(Icons.notifications_none_rounded,
+                color: AppColors.forest),
+            title: const Text('Reminders'),
+            subtitle: Text(state.reminderSettings.anyEnabled
+                ? 'On — meals, check-ins and more'
+                : 'Off — choose meal, check-in and fasting reminders'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => ReminderSettingsScreen.open(context, state),
+          ),
+          ListTile(
+            contentPadding: const EdgeInsets.fromLTRB(20, 0, 16, 0),
+            leading:
+                const Icon(Icons.medication_outlined, color: AppColors.lavender),
+            title: const Text('Supplements'),
+            subtitle: Text('${state.activeSupplements.length} tracked'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => SupplementsScreen.open(context, state),
+          ),
+          ListTile(
+            contentPadding: const EdgeInsets.fromLTRB(20, 0, 16, 8),
+            leading:
+                const Icon(Icons.bookmarks_outlined, color: AppColors.terracotta),
+            title: const Text('My combos'),
+            subtitle: Text('${state.combos.length} saved meals'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => CombosScreen.open(context, state),
+          ),
+        ]),
+      );
+
   Widget _mini(String label, String value) =>
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(label,
@@ -387,4 +430,98 @@ class MoreScreen extends StatelessWidget {
 
   Future<void> _editProfile(BuildContext context) =>
       ProfileScreen.open(context, state);
+}
+
+class _HealthConnectCard extends StatefulWidget {
+  const _HealthConnectCard({required this.state});
+  final AppState state;
+  @override
+  State<_HealthConnectCard> createState() => _HealthConnectCardState();
+}
+
+class _HealthConnectCardState extends State<_HealthConnectCard> {
+  late Future<HealthConnectAvailability> availability =
+      widget.state.healthAvailability();
+
+  @override
+  Widget build(BuildContext context) =>
+      FutureBuilder<HealthConnectAvailability>(
+        future: availability,
+        builder: (context, snapshot) {
+          final status = snapshot.data;
+          // Devices without Health Connect (Android 8, work profiles) simply
+          // do not show the option.
+          if (status == null || status == HealthConnectAvailability.unsupported) {
+            return const SizedBox.shrink();
+          }
+          final state = widget.state;
+          final last = state.healthLastSync;
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      const Icon(Icons.favorite_border_rounded,
+                          color: AppColors.terracotta),
+                      const SizedBox(width: 9),
+                      Expanded(
+                          child: Text('Health Connect',
+                              style: Theme.of(context).textTheme.titleMedium)),
+                    ]),
+                    const SizedBox(height: 10),
+                    Text(
+                        state.healthConnectEnabled
+                            ? 'Reading steps, active energy, workouts, sleep, weight and body composition. Imported values are marked; anything you enter yourself wins. Saapadu never writes to Health Connect.'
+                            : 'Bring in steps, workouts, sleep and weight from Google Fit, Samsung Health or your watch through Health Connect. Read-only.',
+                        style: const TextStyle(
+                            color: AppColors.muted, fontSize: 12)),
+                    if (state.healthMessage != null) ...[
+                      const SizedBox(height: 8),
+                      Text(state.healthMessage!,
+                          style: const TextStyle(
+                              color: AppColors.terracotta, fontSize: 12)),
+                    ],
+                    if (state.healthConnectEnabled && last != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                          'Last sync ${DateFormat('d MMM, h:mm a').format(last)}',
+                          style: const TextStyle(fontSize: 11)),
+                    ],
+                    const SizedBox(height: 14),
+                    Wrap(spacing: 8, runSpacing: 8, children: [
+                      if (status == HealthConnectAvailability.needsInstall)
+                        FilledButton.tonalIcon(
+                            onPressed: () async {
+                              await state.health.openInstall();
+                              setState(() =>
+                                  availability = state.healthAvailability());
+                            },
+                            icon: const Icon(Icons.download_outlined),
+                            label: const Text('Install Health Connect'))
+                      else if (!state.healthConnectEnabled)
+                        FilledButton.tonalIcon(
+                            onPressed: state.connectHealthConnect,
+                            icon: const Icon(Icons.link_rounded),
+                            label: const Text('Connect Health Connect'))
+                      else ...[
+                        FilledButton.tonalIcon(
+                            onPressed: state.healthSyncing
+                                ? null
+                                : () => state.syncHealthConnect(),
+                            icon: const Icon(Icons.sync_rounded),
+                            label: Text(state.healthSyncing
+                                ? 'Syncing…'
+                                : 'Sync now')),
+                        TextButton(
+                            onPressed: state.disconnectHealthConnect,
+                            child: const Text('Stop syncing')),
+                      ],
+                    ]),
+                  ]),
+            ),
+          );
+        },
+      );
 }

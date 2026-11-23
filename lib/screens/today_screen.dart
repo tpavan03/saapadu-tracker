@@ -5,6 +5,8 @@ import '../app_state.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'food_search_screen.dart';
+import 'reminder_settings_screen.dart';
+import 'supplements_screen.dart';
 
 class TodayScreen extends StatelessWidget {
   const TodayScreen({
@@ -71,6 +73,30 @@ class TodayScreen extends StatelessWidget {
           const SizedBox(height: 6),
           const Text('A little balance, on your own terms.',
               style: TextStyle(color: AppColors.muted)),
+          if (state.loggingStreakDays > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Wrap(children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                      color: AppColors.lime.withValues(alpha: .18),
+                      borderRadius: BorderRadius.circular(20)),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.local_fire_department_outlined,
+                        size: 16, color: AppColors.forest),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                          '${state.loggingStreakDays}-day logging streak',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 12)),
+                    ),
+                  ]),
+                ),
+              ]),
+            ),
           const SizedBox(height: 10),
           LayoutBuilder(builder: (context, box) {
             final date = Text(
@@ -124,9 +150,15 @@ class TodayScreen extends StatelessWidget {
             },
           ),
           const SizedBox(height: 16),
+          if (state.showReminderPrompt) ...[
+            _reminderPrompt(context),
+            const SizedBox(height: 16),
+          ],
           _checkInCard(context),
           const SizedBox(height: 16),
           _rhythmCard(context),
+          const SizedBox(height: 16),
+          _supplementCard(context),
           const SizedBox(height: 16),
           _suggestionCard(context),
           const SizedBox(height: 12),
@@ -157,23 +189,29 @@ class TodayScreen extends StatelessWidget {
                       width: cardWidth,
                       icon: Icons.water_drop_outlined,
                       color: AppColors.sky,
-                      value: '${state.selectedWellness.waterMl}',
-                      unit: 'ml water',
+                      value: '${state.selectedWater}',
+                      unit: state.selectedWaterIsDefault
+                          ? 'ml water (default)'
+                          : 'ml water',
                       onTap: () => _editWater(context)),
                   _signal(context,
                       width: cardWidth,
                       icon: Icons.bedtime_outlined,
                       color: AppColors.lavender,
-                      value:
-                          state.selectedWellness.sleepHours.toStringAsFixed(1),
-                      unit: 'hours sleep',
+                      value: state.selectedWellness.effectiveSleepHours
+                          .toStringAsFixed(1),
+                      unit: state.selectedWellness.sleepImported
+                          ? 'hours sleep · imported'
+                          : 'hours sleep',
                       onTap: () => _editSleep(context)),
                   _signal(context,
                       width: cardWidth,
                       icon: Icons.directions_walk_outlined,
                       color: AppColors.leaf,
-                      value: '${state.selectedWellness.steps}',
-                      unit: 'steps',
+                      value: '${state.selectedWellness.effectiveSteps}',
+                      unit: state.selectedWellness.stepsImported
+                          ? 'steps · imported'
+                          : 'steps',
                       onTap: () => _editSteps(context)),
                   _signal(context,
                       width: cardWidth,
@@ -252,39 +290,48 @@ class TodayScreen extends StatelessWidget {
                             child: Text('A moment to hydrate',
                                 style:
                                     Theme.of(context).textTheme.titleMedium)),
-                        Text('${state.selectedWellness.waterMl} ml',
+                        Text('${state.selectedWater} ml',
                             style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                                 color: AppColors.sky))
                       ]),
                       const SizedBox(height: 10),
-                      const Text('Keep a simple record, one glass at a time.',
-                          style:
-                              TextStyle(color: AppColors.muted, fontSize: 12)),
+                      Text(
+                          state.selectedWaterIsDefault
+                              ? 'Counted as 4 L by default. Adjust only if you drank less or more.'
+                              : state.selectedDayUsesWaterDefault
+                                  ? 'Edited for this day. Reset to use the 4 L default again.'
+                                  : 'Keep a simple record, one glass at a time.',
+                          style: const TextStyle(
+                              color: AppColors.muted, fontSize: 12)),
                       const SizedBox(height: 14),
-                      Wrap(
-                          spacing: 8,
-                          runSpacing: 6,
-                          children: [250, 500]
-                              .map((ml) => OutlinedButton.icon(
-                                  onPressed: () async {
-                                    await state.updateWellness(
-                                        state.selectedWellness.copyWith(
-                                            waterMl:
-                                                state.selectedWellness.waterMl +
-                                                    ml));
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(SnackBar(
-                                              content:
-                                                  Text('Added $ml ml water'),
-                                              duration:
-                                                  const Duration(seconds: 2)));
-                                    }
-                                  },
-                                  icon: const Icon(Icons.add, size: 16),
-                                  label: Text('$ml ml')))
-                              .toList()),
+                      Wrap(spacing: 8, runSpacing: 6, children: [
+                        for (final ml in const [-250, 250, 500])
+                          OutlinedButton.icon(
+                              onPressed: ml < 0 && state.selectedWater <= 0
+                                  ? null
+                                  : () async {
+                                      await state.adjustWater(ml);
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(SnackBar(
+                                                content: Text(ml > 0
+                                                    ? 'Added $ml ml water'
+                                                    : 'Removed ${-ml} ml water'),
+                                                duration: const Duration(
+                                                    seconds: 2)));
+                                      }
+                                    },
+                              icon: Icon(ml > 0 ? Icons.add : Icons.remove,
+                                  size: 16),
+                              label: Text('${ml.abs()} ml')),
+                        if (state.selectedDayUsesWaterDefault &&
+                            !state.selectedWaterIsDefault)
+                          TextButton.icon(
+                              onPressed: state.resetWater,
+                              icon: const Icon(Icons.restart_alt, size: 16),
+                              label: const Text('Reset to 4 L')),
+                      ]),
                     ])));
         final fasting = Card(
             child: Padding(
@@ -610,10 +657,12 @@ class TodayScreen extends StatelessWidget {
     final value = await askNumber(context,
         title: 'Water',
         label: 'Total water (ml)',
-        initial: state.selectedWellness.waterMl.toDouble());
+        initial: state.selectedWater.toDouble(),
+        helper: state.selectedDayUsesWaterDefault
+            ? 'Each day counts 4000 ml unless you change it'
+            : null);
     if (value != null) {
-      state.updateWellness(state.selectedWellness
-          .copyWith(waterMl: value.round().clamp(0, 10000)));
+      await state.setWater(value.round().clamp(0, 10000));
     }
   }
 
@@ -621,7 +670,10 @@ class TodayScreen extends StatelessWidget {
     final value = await askNumber(context,
         title: 'Sleep',
         label: 'Hours slept',
-        initial: state.selectedWellness.sleepHours);
+        initial: state.selectedWellness.effectiveSleepHours,
+        helper: state.selectedWellness.sleepImported
+            ? 'Imported from Health Connect; your entry wins'
+            : null);
     if (value != null) {
       state.updateWellness(
           state.selectedWellness.copyWith(sleepHours: value.clamp(0, 24)));
@@ -632,12 +684,106 @@ class TodayScreen extends StatelessWidget {
     final value = await askNumber(context,
         title: 'Steps',
         label: 'Steps today',
-        initial: state.selectedWellness.steps.toDouble(),
-        helper: 'Manual total from your phone or watch');
+        initial: state.selectedWellness.effectiveSteps.toDouble(),
+        helper: state.selectedWellness.stepsImported
+            ? 'Imported from Health Connect; your entry wins'
+            : 'Manual total from your phone or watch');
     if (value != null) {
       state.updateWellness(state.selectedWellness
           .copyWith(steps: value.round().clamp(0, 100000)));
     }
+  }
+
+  Widget _reminderPrompt(BuildContext context) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              const Icon(Icons.notifications_none_rounded,
+                  color: AppColors.forest),
+              const SizedBox(width: 10),
+              Expanded(
+                  child: Text('Gentle reminders?',
+                      style: Theme.of(context).textTheme.titleMedium)),
+            ]),
+            const SizedBox(height: 8),
+            const Text(
+                'A nudge at meal times only when that meal is not logged yet, an evening reminder if the day looks incomplete, and a weekly check-in. Change times any time in More.',
+                style: TextStyle(color: AppColors.muted, fontSize: 12)),
+            const SizedBox(height: 12),
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              FilledButton.tonal(
+                  onPressed: () async {
+                    final granted =
+                        await state.reminderScheduler.requestPermission();
+                    await state.dismissReminderPrompt();
+                    if (granted) {
+                      await state.saveReminderSettings(
+                          state.reminderSettings.recommended());
+                    } else if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text(
+                              'Notifications are off for Saapadu. You can allow them in Android settings.')));
+                    }
+                  },
+                  child: const Text('Turn on')),
+              TextButton(
+                  onPressed: () => ReminderSettingsScreen.open(context, state),
+                  child: const Text('Choose')),
+              TextButton(
+                  onPressed: state.dismissReminderPrompt,
+                  child: const Text('Not now')),
+            ]),
+          ]),
+        ),
+      );
+
+  Widget _supplementCard(BuildContext context) {
+    final items = state.activeSupplements;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 12, 12),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            const Icon(Icons.medication_outlined, color: AppColors.lavender),
+            const SizedBox(width: 9),
+            Expanded(
+                child: Text('Supplements',
+                    style: Theme.of(context).textTheme.titleMedium)),
+            TextButton(
+                onPressed: () => SupplementsScreen.open(context, state),
+                child: Text(items.isEmpty ? 'Add' : 'Manage')),
+          ]),
+          if (items.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 6),
+              child: Text(
+                  'Track vitamins, whey or anything you take daily. Optional.',
+                  style: TextStyle(color: AppColors.muted, fontSize: 12)),
+            )
+          else
+            for (final slot in const ['Morning', 'After workout', 'Night'])
+              for (final s in items.where((s) => s.slot == slot))
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  value: state.supplementTaken(s.id),
+                  onChanged: (_) => state.toggleSupplement(s.id),
+                  title: Text(s.name,
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: Text([
+                    slot,
+                    if (s.dose.isNotEmpty) s.dose,
+                    if (s.calories > 0 || s.proteinG > 0)
+                      state.supplementAlsoLoggedAsFood(state.selectedKey, s)
+                          ? 'already in food log'
+                          : '${s.calories.round()} kcal · ${s.proteinG.round()} g protein',
+                  ].join(' • ')),
+                ),
+        ]),
+      ),
+    );
   }
 
   String _mealForNow() {

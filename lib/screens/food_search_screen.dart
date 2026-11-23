@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../app_state.dart';
 import '../models.dart';
 import '../theme.dart';
+import '../widgets/serving_editor.dart';
 
 class FoodSearchScreen extends StatefulWidget {
   const FoodSearchScreen(
@@ -145,24 +146,119 @@ class _FoodSearchScreenState extends State<FoodSearchScreen> {
                       style: TextStyle(color: AppColors.muted, fontSize: 11)),
                 ]),
               ),
-              Expanded(
-                child: results.isEmpty
-                    ? _empty()
-                    : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(18, 0, 18, 30),
-                        itemCount: results.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) => _FoodRow(
-                          food: results[index],
-                          onTap: () => _chooseServing(results[index]),
-                        ),
-                      ),
-              ),
+              Expanded(child: Builder(builder: (context) {
+                final list = results;
+                final quick = query.trim().isEmpty && category == 'All'
+                    ? _quickSections()
+                    : const <Widget>[];
+                if (list.isEmpty && quick.isEmpty) return _empty();
+                return ListView(
+                  padding: const EdgeInsets.fromLTRB(18, 0, 18, 30),
+                  children: [
+                    ...quick,
+                    if (quick.isNotEmpty) _sectionLabel('All foods'),
+                    for (final food in list) ...[
+                      _FoodRow(food: food, onTap: () => _chooseServing(food)),
+                      const SizedBox(height: 8),
+                    ],
+                  ],
+                );
+              })),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Widget _sectionLabel(String text) => Padding(
+        padding: const EdgeInsets.fromLTRB(4, 10, 4, 8),
+        child: Text(text.toUpperCase(),
+            style: const TextStyle(
+                fontSize: 11,
+                letterSpacing: 1.2,
+                fontWeight: FontWeight.w900,
+                color: AppColors.leaf)),
+      );
+
+  /// Saved combos, then recent and frequent foods, above the full list.
+  List<Widget> _quickSections() {
+    final state = widget.state;
+    final combos = state.combos;
+    final recent = state.recentFoods(limit: 6);
+    final recentIds = {for (final f in recent) f.id};
+    final frequent = state
+        .frequentFoods(limit: 8)
+        .where((f) => !recentIds.contains(f.id))
+        .take(6)
+        .toList();
+    return [
+      if (combos.isNotEmpty) ...[
+        _sectionLabel('My combos'),
+        for (final combo in combos) ...[
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.bookmarks_outlined,
+                  color: AppColors.forest),
+              title: Text(combo.name,
+                  style: const TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: Text(
+                  '${combo.items.length} items • ${combo.calories.round()} kcal • ${combo.protein.round()} g protein',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis),
+              trailing: FilledButton.tonal(
+                  onPressed: () => _logCombo(combo),
+                  child: const Text('Log')),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ],
+      if (recent.isNotEmpty) ...[
+        _sectionLabel('Recent'),
+        for (final food in recent) ...[
+          _FoodRow(food: food, onTap: () => _chooseServing(food)),
+          const SizedBox(height: 8),
+        ],
+      ],
+      if (frequent.isNotEmpty) ...[
+        _sectionLabel('Frequent'),
+        for (final food in frequent) ...[
+          _FoodRow(food: food, onTap: () => _chooseServing(food)),
+          const SizedBox(height: 8),
+        ],
+      ],
+    ];
+  }
+
+  Future<void> _logCombo(MealCombo combo) async {
+    final state = widget.state;
+    if (state.fasting.isActive &&
+        DateUtils.isSameDay(state.selectedDate, DateTime.now()) &&
+        combo.calories > 0) {
+      final end = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+                  title: const Text('End fast at this entry time?'),
+                  content: const Text(
+                      'This combo contains calories. End the window now, or keep the timer and log normally.'),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Keep timer & log')),
+                    FilledButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('End fast & log'))
+                  ]));
+      if (end == null) return;
+      if (end) await state.stopFast();
+    }
+    await state.logCombo(combo, meal: widget.initialMeal);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(
+            'Logged ${combo.items.length} items from ${combo.name} to ${widget.initialMeal}.')));
+    Navigator.pop(context);
   }
 
   Widget _empty() => Center(
@@ -198,7 +294,7 @@ class _FoodSearchScreenState extends State<FoodSearchScreen> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
       builder: (context) => StatefulBuilder(builder: (context, setSheetState) {
         return SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
                 24, 22, 24, 24 + MediaQuery.viewInsetsOf(context).bottom),
             child: ConstrainedBox(
@@ -229,31 +325,15 @@ class _FoodSearchScreenState extends State<FoodSearchScreen> {
                                   fontSize: 20, fontWeight: FontWeight.w900)),
                         ]),
                     const SizedBox(height: 18),
-                    Wrap(
-                        spacing: 8,
-                        children: [.5, 1.0, 1.5, 2.0]
-                            .map((v) => ChoiceChip(
-                                  label: Text('${v}x'),
-                                  selected: servings == v,
-                                  onSelected: (_) =>
-                                      setSheetState(() => servings = v),
-                                ))
-                            .toList()),
-                    Slider(
-                        value: servings,
-                        min: .25,
-                        max: 5,
-                        divisions: 19,
-                        label: '${servings.toStringAsFixed(2)} servings',
+                    Text('${servings.toStringAsFixed(2)} servings',
+                        style: const TextStyle(
+                            color: AppColors.muted, fontSize: 12)),
+                    // Continuous quantity: smooth slider plus servings and
+                    // grams fields kept in sync (0.1–10 servings).
+                    ServingEditor(
+                        food: food,
+                        initial: servings,
                         onChanged: (v) => setSheetState(() => servings = v)),
-                    Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _nutrient('Protein', food.proteinG * servings),
-                          _nutrient('Carbs', food.carbsG * servings),
-                          _nutrient('Fat', food.fatG * servings),
-                          _nutrient('Fiber', food.fiberG * servings),
-                        ]),
                     const SizedBox(height: 18),
                     DropdownButtonFormField<String>(
                       initialValue: meal,
@@ -336,13 +416,6 @@ class _FoodSearchScreenState extends State<FoodSearchScreen> {
     );
     if (added == true && mounted) Navigator.pop(context);
   }
-
-  Widget _nutrient(String label, double value) => Column(children: [
-        Text('${value.round()}g',
-            style: const TextStyle(fontWeight: FontWeight.w800)),
-        Text(label,
-            style: const TextStyle(fontSize: 11, color: AppColors.muted)),
-      ]);
 
   Future<void> _newFood() async {
     final name = TextEditingController(text: query);

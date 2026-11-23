@@ -43,7 +43,7 @@ class _PlanScreenState extends State<PlanScreen> {
       text: profile.manualCalorieTarget?.toString() ?? '',
     );
     mode = profile.goalDate == null ? _PlanMode.pace : _PlanMode.date;
-    pace = profile.weeklyGoalKg.clamp(.25, .75);
+    pace = profile.weeklyGoalKg.clamp(.10, CalorieEngine.maxAutomaticWeeklyLossKg);
     goalDate = profile.goalDate ?? DateTime.now().add(const Duration(days: 90));
     useCustomTarget = profile.manualCalorieTarget != null;
   }
@@ -162,7 +162,7 @@ class _PlanScreenState extends State<PlanScreen> {
                                 value: pace,
                                 min: .10,
                                 max: CalorieEngine.maxAutomaticWeeklyLossKg,
-                                divisions: 8,
+                                divisions: 18,
                                 label: '${pace.toStringAsFixed(2)} kg/week',
                                 onChanged: (value) =>
                                     setState(() => pace = value),

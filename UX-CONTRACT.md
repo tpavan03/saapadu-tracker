@@ -11,11 +11,14 @@ existing Vercel project. Changes extend the fasting JSON object compatibly.
 | Form | Material inputs / screen validation | Profile, FoodItem and calculation models | sheet / dialog | flutter test / analyze |
 | Scrollbar | ThemeData.scrollbarTheme / Flutter ScrollBehavior | theme.dart | standard Material | desktop browser |
 | Toast | ScaffoldMessenger SnackBar | Calling workflow | success / error | widget and browser |
-| CRUD | AppState | SharedPreferences + cloud JSON | food, workout, wellness, fasting | state tests |
+| CRUD | AppState | SharedPreferences + cloud JSON | food, workout, wellness, fasting, combos, supplements, body readings | state tests |
 
 Navigation retains its screen until a route or destination is selected. Search
 is local, transient, clearable and keyboard-accessible. Food search preserves
-recent/frequent foods; Repeat last meal copies quantities after confirmation.
+recent/frequent foods and saved combos above the full list; Repeat last meal
+copies quantities after confirmation, and a meal's menu also offers Copy
+yesterday's meal and Save as combo. Quantities use a continuous slider with
+synced servings and grams fields (0.1–10), for new entries and diary edits.
 Food deletion confirms the named item for both swipe and button paths. Saving
 food disables duplicate submission and preserves a retry path on error.
 
@@ -45,3 +48,11 @@ Native browser alert/confirm are not used. Target WCAG 2.2 AA through Flutter
 semantics, labelled controls, visible focus and narrow layouts. The app is an
 estimate-based personal diary; it must not claim authenticated cloud sync was
 verified when only a frontend or anonymous endpoint was tested.
+
+Version 2.1 additions are additive to the backup JSON (format string unchanged).
+Water counts 4 L by default only from the diary's first 2.1 launch; earlier
+days show their stored value. Health Connect is Android-only and read-only:
+imported values are labelled and manual entries win. Reminders are opt-in,
+inexact and skip themselves once their condition is met. Protein nudges and
+the reminder prompt are dismissible and never block logging. Smart-scale
+readings are shown as trends and never change calorie targets.

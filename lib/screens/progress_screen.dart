@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../app_state.dart';
 import '../calorie_engine.dart';
+import '../models.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'plan_screen.dart';
@@ -65,6 +66,8 @@ class ProgressScreen extends StatelessWidget {
         ]);
       }),
       const SizedBox(height: 18),
+      _weeklySummaryCard(context),
+      const SizedBox(height: 18),
       _checkInCard(context),
       const SizedBox(height: 18),
       Card(
@@ -92,6 +95,8 @@ class ProgressScreen extends StatelessWidget {
                           p.goalWeightKg))),
         ]),
       )),
+      const SizedBox(height: 18),
+      _bodyCard(context),
       const SizedBox(height: 18),
       _planCard(context),
       TextButton.icon(
@@ -204,6 +209,113 @@ class ProgressScreen extends StatelessWidget {
               ]),
             ]),
           )));
+
+  Widget _weeklySummaryCard(BuildContext context) {
+    final w = state.weeklySummaryFor(DateTime.now());
+    String fmtDate(String key) => DateFormat('d MMM').format(DateTime.parse(key));
+    final change = w.weightChangeKg;
+    final rows = <(String, String)>[
+      ('Days logged', '${w.daysLogged} of 7'),
+      (
+        'Avg calories',
+        w.daysLogged == 0
+            ? '—'
+            : '${w.avgCalories.round()} / ${w.avgTarget.round()} kcal'
+      ),
+      ('Avg protein', w.daysLogged == 0 ? '—' : '${w.avgProtein.round()} g'),
+      (
+        'Weight change',
+        change == null
+            ? '—'
+            : '${change >= 0 ? '+' : ''}${change.toStringAsFixed(1)} kg'
+      ),
+      ('Steps', '${NumberFormat.decimalPattern().format(w.totalSteps)} total · ${NumberFormat.decimalPattern().format(w.avgSteps)} avg'),
+      ('Logging streak', '${state.loggingStreakDays} days'),
+    ];
+    return Card(
+        child: Padding(
+      padding: const EdgeInsets.all(22),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('This week', style: Theme.of(context).textTheme.titleLarge),
+        Text('${fmtDate(w.fromKey)} – ${fmtDate(w.toKey)} · averages use logged days',
+            style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+        const SizedBox(height: 12),
+        for (final r in rows)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(
+                  child: Text(r.$1,
+                      style: const TextStyle(color: AppColors.muted))),
+              const SizedBox(width: 12),
+              Flexible(
+                  child: Text(r.$2,
+                      textAlign: TextAlign.end,
+                      style: const TextStyle(fontWeight: FontWeight.w800))),
+            ]),
+          ),
+      ]),
+    ));
+  }
+
+  Widget _bodyCard(BuildContext context) {
+    final records = state.bodyCompositionSorted;
+    String trend(String field) {
+      final points = [
+        for (final r in records)
+          if (r[field] != null) (r.date, r[field]!)
+      ];
+      if (points.isEmpty) return '—';
+      final (_, unit) = BodyComposition.fields[field]!;
+      final last = points.last.$2;
+      final text = '${last.toStringAsFixed(1)} $unit';
+      if (points.length < 2) return text;
+      final first = points.length > 4 ? points[points.length - 5] : points.first;
+      final delta = last - first.$2;
+      return '$text (${delta >= 0 ? '+' : ''}${delta.toStringAsFixed(1)} since ${DateFormat('d MMM').format(DateTime.parse(first.$1))})';
+    }
+
+    final shown = ['waistCm', 'hipCm', 'chestCm', 'bodyFatPct', 'muscleKg']
+        .where((f) => records.any((r) => r[f] != null))
+        .toList();
+    return Card(
+        child: Padding(
+      padding: const EdgeInsets.all(22),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Body measurements', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 6),
+        Text(
+            shown.isEmpty
+                ? 'Optional: add waist, hip and chest, or smart-scale readings, on a weight check-in.'
+                : state.measurementsDue
+                    ? 'Tape measurements are due — every two weeks is plenty.'
+                    : 'Latest reading, with the change across recent check-ins.',
+            style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+        const SizedBox(height: 10),
+        for (final f in shown)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(
+                  child: Text(BodyComposition.fields[f]!.$1,
+                      style: const TextStyle(color: AppColors.muted))),
+              const SizedBox(width: 12),
+              Flexible(
+                  child: Text(trend(f),
+                      textAlign: TextAlign.end,
+                      style: const TextStyle(fontWeight: FontWeight.w800))),
+            ]),
+          ),
+        if (shown.any((f) => f == 'bodyFatPct' || f == 'muscleKg'))
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text(
+                'Home scales vary from day to day with water and timing. Compare trends week to week, not single readings. These readings do not change your calorie target.',
+                style: TextStyle(color: AppColors.muted, fontSize: 11)),
+          ),
+      ]),
+    ));
+  }
 
   Widget _checkInCard(BuildContext context) {
     final due = state.nextWeightCheckInDate;

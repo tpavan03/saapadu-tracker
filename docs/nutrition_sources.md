@@ -1,6 +1,6 @@
 # Nutrition seed data: sources and limits
 
-`assets/data/south_indian_foods.json` is an offline starter catalogue for meal logging. It contains 141 common South Indian and basic Indian foods. Nutrient values are for the named serving, not per 100 g, unless `servingLabel` explicitly says `100 g`.
+`assets/data/south_indian_foods.json` is an offline starter catalogue for meal logging. It contains 294 common South Indian and Indian foods, including street food and chaat, hotel and restaurant dishes, drinks, sweets, and everyday packaged staples. Nutrient values are for the named serving, not per 100 g, unless `servingLabel` explicitly says `100 g`.
 
 ## Source key map
 
@@ -10,6 +10,7 @@
 | `USDA_FDC_SCALED` | A simple food value based on USDA FoodData Central Foundation/SR/FNDDS data and scaled to the stated serving mass. This is mainly used for cooked staples, fruit, milk, eggs, and other foods where a familiar edible serving is represented directly in FoodData Central. |
 | `IFCT_RECIPE_ESTIMATE` | A calculated household-recipe estimate. Ingredient nutrient values are based primarily on IFCT 2017; customary ingredient proportions, cooking yield, oil, and the stated serving mass were applied. This is not an analysed IFCT value for the finished dish. |
 | `IFCT_USDA_RECIPE_ESTIMATE` | A calculated recipe estimate that uses both IFCT ingredient values and a USDA cooked-food or yield match. |
+| `LABEL_TYPICAL_ESTIMATE` | A generic value for a common packaged or branded-style product (for example instant noodles, malt drink powder with milk, whey protein, protein bars, and biscuits), based on typical per-serving values printed on widely sold Indian retail package nutrition labels and cross-checked against a close USDA FoodData Central branded or SR match. Brands differ, so the user's own package label should be preferred. |
 
 ## Primary references
 
@@ -17,6 +18,7 @@
 2. ICMR-NIN Expert Committee. *Dietary Guidelines for Indians 2024*. Official PDF: <https://www.nin.res.in/dietaryguidelines/pdfjs/locale/DGI24thJune2024fin.pdf>. The guideline's food-group examples and Indian household measures informed food selection and reasonable portion ranges; they are not the direct source of every nutrient value.
 3. USDA Agricultural Research Service. *FoodData Central*. Data documentation: <https://fdc.nal.usda.gov/data-documentation/>. Downloadable datasets: <https://fdc.nal.usda.gov/download-datasets/>.
 4. FAO/INFOODS. *Standards and Guidelines*: <https://www.fao.org/infoods/infoods/standards-guidelines/en/>. Recipe calculation resources: <https://www.fao.org/infoods/infoods/recipes/en/>. These references informed food matching, unit conversion, and the decision to identify calculated recipes separately from analysed foods.
+5. Retail package nutrition labels (Food Safety and Standards (Labelling and Display) Regulations, 2020, FSSAI: <https://www.fssai.gov.in/>) for common Indian packaged foods. These were used only for `LABEL_TYPICAL_ESTIMATE` items as a typical, non-brand-specific value.
 
 IFCT 2017 is the preferred reference because its sampling and foods are Indian. It reports 528 foods and more than 150 food components. With limited exceptions noted in IFCT, its entries describe raw foods. A cooked mixed dish therefore cannot be treated as though IFCT directly analysed the app's particular idli, dosa, sambar, or curry recipe.
 

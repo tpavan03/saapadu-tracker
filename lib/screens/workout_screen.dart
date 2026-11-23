@@ -116,7 +116,9 @@ class WorkoutScreen extends StatelessWidget {
                 icon: const Icon(Icons.watch_outlined, size: 18),
                 label: Text(
                   state.selectedWellness.exerciseCalories == 0
-                      ? 'Enter watch active calories'
+                      ? (state.selectedWellness.activeCaloriesImported
+                          ? 'Health Connect: ${state.selectedWellness.effectiveActiveCalories} active kcal (imported)'
+                          : 'Enter watch active calories')
                       : 'Watch total: ${state.selectedWellness.exerciseCalories} kcal',
                 ),
               ),
@@ -212,7 +214,9 @@ class WorkoutScreen extends StatelessWidget {
         title: Text(entry.typeName,
             style: const TextStyle(fontWeight: FontWeight.w800)),
         subtitle: Text(
-          '${entry.durationMinutes.round()} min • ${entry.met.toStringAsFixed(1)} MET',
+          entry.imported
+              ? '${entry.durationMinutes.round()} min • imported${state.selectedWorkouts.any((w) => !w.imported) ? ' • not counted (manual workouts win)' : ''}'
+              : '${entry.durationMinutes.round()} min • ${entry.met.toStringAsFixed(1)} MET',
         ),
         trailing: Row(mainAxisSize: MainAxisSize.min, children: [
           Column(
@@ -226,11 +230,20 @@ class WorkoutScreen extends StatelessWidget {
                   style: TextStyle(fontSize: 9, color: AppColors.muted)),
             ],
           ),
-          IconButton(
-            tooltip: 'Delete workout',
-            onPressed: () => state.deleteWorkout(entry.id),
-            icon: const Icon(Icons.close, size: 18),
-          ),
+          if (entry.imported)
+            const Padding(
+              padding: EdgeInsets.all(12),
+              child: Tooltip(
+                  message: 'Imported from Health Connect; edit it there',
+                  child: Icon(Icons.favorite_border_rounded,
+                      size: 18, color: AppColors.muted)),
+            )
+          else
+            IconButton(
+              tooltip: 'Delete workout',
+              onPressed: () => state.deleteWorkout(entry.id),
+              icon: const Icon(Icons.close, size: 18),
+            ),
         ]),
       );
 

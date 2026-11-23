@@ -23,9 +23,21 @@ class _WeightCheckInScreenState extends State<WeightCheckInScreen> {
   late DateTime date;
   bool saving = false;
   String? error;
+  final body = <String, TextEditingController>{};
+  final bodyInitial = <String, String>{};
   @override
   void initState() {
     super.initState();
+    final key = widget.entry?.date ?? dateKey(DateTime.now());
+    final record = widget.state.bodyComposition[key];
+    for (final field in BodyComposition.fields.keys) {
+      final v = record?[field];
+      final text = v == null
+          ? ''
+          : (v % 1 == 0 ? v.toStringAsFixed(0) : v.toStringAsFixed(1));
+      bodyInitial[field] = text;
+      body[field] = TextEditingController(text: text);
+    }
     weight = TextEditingController(
         text: (widget.entry?.weightKg ?? widget.state.profile!.currentWeightKg)
             .toStringAsFixed(1));
@@ -36,6 +48,9 @@ class _WeightCheckInScreenState extends State<WeightCheckInScreen> {
 
   @override
   void dispose() {
+    for (final c in body.values) {
+      c.dispose();
+    }
     weight.dispose();
     super.dispose();
   }
@@ -48,6 +63,14 @@ class _WeightCheckInScreenState extends State<WeightCheckInScreen> {
     });
     try {
       await widget.state.logWeight(double.parse(weight.text), date: date);
+      final changes = <String, double?>{
+        for (final f in body.keys)
+          if (body[f]!.text.trim() != bodyInitial[f])
+            f: double.tryParse(body[f]!.text.trim().replaceAll(',', '.'))
+      };
+      if (changes.isNotEmpty) {
+        await widget.state.saveBodyComposition(dateKey(date), changes);
+      }
       if (mounted) Navigator.pop(context);
     } catch (_) {
       if (mounted) {
@@ -138,6 +161,8 @@ class _WeightCheckInScreenState extends State<WeightCheckInScreen> {
                                           color: AppColors.muted,
                                           fontSize: 12,
                                           height: 1.6)),
+                                  const SizedBox(height: 8),
+                                  _bodyFields(context),
                                   if (error != null)
                                     Padding(
                                         padding: const EdgeInsets.only(top: 16),
@@ -158,6 +183,58 @@ class _WeightCheckInScreenState extends State<WeightCheckInScreen> {
                                           : 'Save check-in')),
                                 ])))))),
       );
+}
+
+extension on _WeightCheckInScreenState {
+  Widget _bodyFields(BuildContext context) {
+    final record = widget.state.bodyComposition[
+        widget.entry?.date ?? dateKey(DateTime.now())];
+    Widget field(String f) {
+      final (label, unit) = BodyComposition.fields[f]!;
+      final imported = record?.importedFields.contains(f) ?? false;
+      return SizedBox(
+        width: 150,
+        child: TextFormField(
+          controller: body[f],
+          enabled: !saving,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+              labelText: label,
+              suffixText: unit == 'rating' || unit == 'years' ? null : unit,
+              helperText: imported ? 'Health Connect' : null),
+          validator: (value) {
+            final text = (value ?? '').trim();
+            if (text.isEmpty) return null;
+            final n = double.tryParse(text.replaceAll(',', '.'));
+            return n == null || n <= 0 || n > 5000 ? 'Check value' : null;
+          },
+        ),
+      );
+    }
+
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        initiallyExpanded: record != null && !record.isEmpty,
+        title: const Text('Measurements & smart scale (optional)'),
+        subtitle: const Text('Waist, hip, chest, body fat, muscle and more',
+            style: TextStyle(fontSize: 12, color: AppColors.muted)),
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Wrap(spacing: 10, runSpacing: 10, children: [
+              for (final f in BodyComposition.fields.keys) field(f),
+            ]),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+              'Leave blank what you do not track. Your own entries replace Health Connect readings for the same date. Home scales vary day to day, so compare weekly trends.',
+              style: TextStyle(color: AppColors.muted, fontSize: 11)),
+        ],
+      ),
+    );
+  }
 }
 
 class WeightHistoryScreen extends StatefulWidget {
@@ -188,7 +265,8 @@ class _WeightHistoryScreenState extends State<WeightHistoryScreen> {
                         leading: const Icon(Icons.monitor_weight_outlined),
                         title: Text('${entry.weightKg.toStringAsFixed(1)} kg'),
                         subtitle: Text(DateFormat('d MMMM y')
-                            .format(DateTime.parse(entry.date))),
+                                .format(DateTime.parse(entry.date)) +
+                            (entry.imported ? ' · Health Connect' : '')),
                         trailing: const Icon(Icons.edit_outlined),
                         onTap: () => WeightCheckInScreen.open(
                             context, widget.state,

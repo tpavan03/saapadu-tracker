@@ -1,12 +1,12 @@
 # Saapadu for Android
 
-Saapadu **2.0.0+4** is a compiled Flutter Android application. Its screens, navigation, diary and fasting timer run on the device. It shares the existing Supabase cloud-history backend with the website.
+Saapadu **2.1.0+5** is a compiled Flutter Android application. Its screens, navigation, diary and fasting timer run on the device. It shares the existing Supabase cloud-history backend with the website.
 
 | Item | Value |
 | --- | --- |
 | Release package | `in.tpavan.saapadu` |
-| Minimum Android version | Android 7.0, API 24 |
-| Release | `2.0.0+4` |
+| Minimum Android version | Android 8.0, API 26 (2.0.0 supported API 24; Health Connect's client library needs API 26) |
+| Release | `2.1.0+5` (compileSdk 37) |
 | Authentication callback | `in.tpavan.saapadu://login-callback/` |
 | Debug package | `in.tpavan.saapadu.debug` |
 | Interface | Midnight ink, soft mint and saffron; original steaming-bowl launcher |
@@ -23,6 +23,14 @@ The package identity changed from the earlier `com.example.saapadu` build. Both 
 4. Check your meals, measurements and history before removing an old installation or clearing its data.
 
 Manual JSON backup remains useful even when cloud sync is enabled. Restoring a backup is an explicit recovery operation; keep copies of both diaries before replacing an existing local history.
+
+## Health Connect and reminders (2.1)
+
+**More → Health Connect → Connect Health Connect** asks Android for read-only access to steps, active energy, exercise sessions, sleep, weight and body composition (body fat, lean mass, body water, BMR). Health Connect is built into Android 14+, and is a Play Store app on Android 9–13; devices without it (Android 8, work profiles) simply do not show the option. Saapadu never writes to Health Connect.
+
+Imported values are stored beside manual ones and labelled as imported. A value you enter yourself always wins, imported workouts are not counted on a day with manual workouts, and nothing is imported for days before the first launch of 2.1. Sync runs on app open and resume, or with **Sync now**.
+
+Reminders use inexact scheduling (no exact-alarm permission). Android 13+ asks for notification permission when you turn one on; reminders are re-planned after a reboot. All reminders are off until you opt in.
 
 ## Sign-in and local storage
 

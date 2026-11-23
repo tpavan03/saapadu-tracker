@@ -163,7 +163,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             initialValue: birthYear,
             decoration: const InputDecoration(labelText: 'Birth year'),
             items: [
-              for (int year = DateTime.now().year - 18;
+              for (int year = DateTime.now().year - 16;
                   year >= DateTime.now().year - 100;
                   year--)
                 DropdownMenuItem(value: year, child: Text('$year')),
@@ -245,8 +245,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         Slider(
           value: weeklyGoal,
           min: .25,
-          max: .75,
-          divisions: 2,
+          max: 1.0,
+          divisions: 15,
           label: '${weeklyGoal.toStringAsFixed(2)} kg/week',
           onChanged: (v) => setState(() => weeklyGoal = v),
         ),

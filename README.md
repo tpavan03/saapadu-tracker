@@ -6,10 +6,12 @@
 
 Track meals, macros, movement, sleep, fasting, and weight over the weeks that actually matter.
 
-Version **2.0.0** adds a native Android app with an original midnight-and-saffron
-interface, a fully editable profile, dated weekly weigh-ins, and goal estimates
-that respond to your recent weight trend. Meals, movement, fasting and history
-stay together in one diary.
+Version **2.1.0** adds 294 built-in foods (street food, drinks and hotel
+favourites such as pani puri, rose milk and jigarthanda), continuous serving
+sizes, a 4 L water default, read-only Health Connect sync, smart reminders,
+quick logging with saved combos, supplements, body measurements and smart-scale
+readings, and a weekly summary. Every 2.0 diary and backup loads unchanged.
+See [the 2.1 release notes](docs/release-2.1.md).
 
 [![Live demo](https://img.shields.io/badge/Live%20demo-saapadu--tracker.vercel.app-1f6f5b?style=for-the-badge)](https://saapadu-tracker.vercel.app)
 [![Flutter](https://img.shields.io/badge/Flutter-Web%20%7C%20Android-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev)
@@ -21,21 +23,28 @@ Saapadu is a personal tracker built around familiar Indian portions. It connects
 
 ## What it does
 
-- **South Indian food diary** — 141 built-in foods, searchable aliases, practical serving sizes, and custom foods.
+- **South Indian food diary** — 294 built-in foods including street food, drinks and restaurant dishes, searchable aliases (Tamil, Telugu, Kannada, Malayalam, Hindi), practical serving sizes, and custom foods.
+- **Continuous quantities** — a smooth slider plus servings and grams fields (0.1–10 servings), on new entries and when editing a diary entry.
+- **Quick logging** — recent and frequent foods at the top of search, copy yesterday's meal, and saved combos such as "my usual breakfast".
 - **Complete nutrition view** — calories, protein, carbohydrates, fat, and fiber for every logged meal.
 - **Editable profile** — update name, current weight, height, age, activity and the body reference used for calorie estimates.
 - **Dynamic goal planning** — recommended or custom targets, weekly pace, a requested goal date, and a separate estimated completion date.
 - **Weekly weight feedback** — dated, editable check-ins update the current plan while preserving historical diary targets. A recent trend informs the estimate once there are at least three readings spanning two weeks; the original requested date remains yours.
 - **Activity tracking** — walking, running, cycling, strength training, yoga, cricket, badminton, swimming, HIIT, and more with MET-based estimates.
-- **Daily wellness** — water, sleep, steps, manual watch calories, notes, and intermittent fasting.
-- **Useful suggestions** — protein and fiber gap prompts plus practical next-meal ideas based on what is still missing.
+- **Daily wellness** — water (4 L counted by default from 2.1 onward; edit only when different), sleep, steps, manual watch calories, notes, and intermittent fasting.
+- **Health Connect (Android)** — read-only import of steps, active energy, workouts, sleep, weight and body composition; imported values are marked and your own entries win.
+- **Smart reminders (Android)** — meal reminders that skip logged meals, an evening nudge when the day looks incomplete, weekly weigh-in, fasting and supplement reminders; all opt-in.
+- **Supplements** — a daily tick-off with optional calories and protein (whey, protein bars), streaks and monthly adherence.
+- **Body measurements** — optional waist, hip, chest and smart-scale readings on dated check-ins, with small trends on Progress.
+- **Streak and weekly summary** — logging streak plus average calories vs target, protein, weight change, steps and days logged.
+- **Useful suggestions** — protein and fiber gap prompts, per-meal protein with a dismissible nudge under ~20 g, and practical next-meal ideas.
 - **Reliable storage** — automatic local persistence, JSON backup/restore, optional Google/Supabase sync, and a native Android session stored securely between launches.
 
 ## Try it
 
 Open the hosted version at **[saapadu-tracker.vercel.app](https://saapadu-tracker.vercel.app)**. The web build works on phones and desktops and can be installed from a compatible browser as a progressive web app.
 
-The **[Android 2.0 APK](https://github.com/tpavan03/saapadu-tracker/releases/download/v2.0.0/Saapadu-2.0.0.apk)** is the signed native Flutter app for Android 7 and newer. It renders on the device and has its own navigation and local storage. The first explicit Google sign-in can open a browser to authenticate; normal launches restore the saved session. You can also choose **Continue on this device** without an account.
+The **[Android 2.0 APK](https://github.com/tpavan03/saapadu-tracker/releases/download/v2.0.0/Saapadu-2.0.0.apk)** is the signed native Flutter app for Android 7 and newer. From 2.1 the Android app needs Android 8.0 (API 26) or newer. It renders on the device and has its own navigation and local storage. The first explicit Google sign-in can open a browser to authenticate; normal launches restore the saved session. You can also choose **Continue on this device** without an account.
 
 See the **[Android installation, migration and build guide](docs/native_android.md)**. Keep the old app until you have restored its cloud history or copied its JSON backup; the new package can be installed alongside it.
 
