@@ -28,12 +28,13 @@ class CampaignTests(unittest.TestCase):
                 "\n\n[Source](../../src/app.py)\n")
         self.config = {"schema": 1, "repository": "tpavan03/saapadu-tracker",
                        "timezone": "Asia/Kolkata", "start_date": "2026-11-03",
-                       "days": 90, "interval_days": 2, "rotation_size": 3,
+                       "days": 90, "interval_days": 2, "daily_from": "2026-11-24",
+                       "rotation_size": 3,
                        "rotation_index": 0, "tasks": [
                            {"id": f"guide-{i:02d}", "title": f"Guide {i}",
                             "path": f"docs/handbook/guide-{i:02d}.md", "body": body,
                             "evidence": [{"path": "src/app.py", "contains": ["def save_record"]}]}
-                           for i in range(15)]}
+                           for i in range(30)]}
         self.state = {"schema": 1, "completed": []}
         self.save()
 
@@ -41,7 +42,7 @@ class CampaignTests(unittest.TestCase):
         (self.root / ".github/maintenance/backlog.json").write_text(json.dumps(self.config))
         (self.root / runner.STATE).write_text(json.dumps(self.state))
 
-    def test_exactly_45_slots_rotate_public_repositories(self):
+    def test_exactly_80_slots_alternate_then_daily_rotation(self):
         slots = []
         start = date(2026, 11, 3)
         for day in range(90):
@@ -52,16 +53,106 @@ class CampaignTests(unittest.TestCase):
                 if plan["due"]:
                     due.append(repo)
                     slots.append(plan["slot"])
-            self.assertEqual(len(due), 1 if day % 2 == 0 else 0)
-            if due:
-                self.assertEqual(due[0], (day // 2) % 3)
-        self.assertEqual(slots, list(range(45)))
+            if day < 21:
+                # Alternate-day schedule before 24 November stays unchanged.
+                self.assertEqual(len(due), 1 if day % 2 == 0 else 0)
+                if due:
+                    self.assertEqual(due[0], (day // 2) % 3)
+            else:
+                self.assertEqual(len(due), 1)
+                self.assertEqual(due[0], (11 + day - 21) % 3)
+        self.assertEqual(slots, list(range(runner.TOTAL_SLOTS)))
+        self.assertEqual(runner.TOTAL_SLOTS, 80)
+
+    def test_no_slot_is_assigned_twice_across_repositories(self):
+        per_repo = [runner.repository_slots({**self.config, "rotation_index": repo}) for repo in range(3)]
+        combined = [slot for slots in per_repo for slot in slots]
+        self.assertEqual(sorted(combined), list(range(80)))
+        self.assertEqual(len(combined), len(set(combined)))
+        daily = [[slot for slot in slots if slot >= 11] for slots in per_repo]
+        self.assertEqual([len(slots) for slots in daily], [23, 23, 23])
+
+    def test_completed_alternate_day_slots_remain_valid(self):
+        history = {0: [(0, "2026-11-03"), (3, "2026-11-09"), (6, "2026-11-15"), (9, "2026-11-21")],
+                   1: [(1, "2026-11-05"), (4, "2026-11-11"), (7, "2026-11-17"), (10, "2026-11-23")],
+                   2: [(5, "2026-11-13"), (8, "2026-11-19")]}
+        for repo, records in history.items():
+            config = {**self.config, "rotation_index": repo}
+            for slot, day in records:
+                plan = runner.calendar(config, date.fromisoformat(day))
+                self.assertTrue(plan["due"])
+                self.assertEqual(plan["slot"], slot)
+        # The missed portfolio slot is never offered again.
+        portfolio = {**self.config, "rotation_index": 2}
+        self.assertEqual(runner.calendar(portfolio, date(2026, 11, 7))["slot"], 2)
+        for day in range(21, 90):
+            plan = runner.calendar(portfolio, date(2026, 11, 3) + timedelta(days=day))
+            self.assertNotEqual(plan["slot"], 2)
+        self.config["rotation_index"] = 0
+        self.state["completed"] = [{"id": f"guide-{i:02d}", "slot": slot}
+                                   for i, (slot, _) in enumerate(history[0])]
+        self.save()
+        runner.load(self.root)
+
+    def test_daily_switch_starts_today_with_the_portfolio(self):
+        self.assertFalse(runner.calendar({**self.config, "rotation_index": 1}, date(2026, 11, 22))["due"])
+        for repo, expected in ((0, False), (1, False), (2, True)):
+            plan = runner.calendar({**self.config, "rotation_index": repo}, date(2026, 11, 24))
+            self.assertEqual(plan["due"], expected)
+        self.assertEqual(runner.calendar({**self.config, "rotation_index": 2}, date(2026, 11, 24))["slot"], 11)
+        self.assertEqual(runner.calendar({**self.config, "rotation_index": 0}, date(2026, 11, 25))["slot"], 12)
+        self.assertEqual(runner.calendar({**self.config, "rotation_index": 1}, date(2026, 11, 26))["slot"], 13)
+        now = datetime(2026, 11, 23, 21, 47, tzinfo=timezone.utc)
+        self.assertEqual(now.astimezone(runner.ZoneInfo("Asia/Kolkata")).date(), date(2026, 11, 24))
+
+    def test_last_slot_is_79_on_31_january_then_expires(self):
+        plan = runner.calendar({**self.config, "rotation_index": 1}, date(2027, 1, 31))
+        self.assertTrue(plan["due"])
+        self.assertEqual(plan["slot"], 79)
+        for repo in range(3):
+            config = {**self.config, "rotation_index": repo}
+            for day in (date(2027, 2, 1), date(2027, 2, 2)):
+                self.assertTrue(runner.calendar(config, day)["expired"])
+                self.assertFalse(runner.calendar(config, day)["due"])
+            self.assertFalse(runner.calendar(config, date(2027, 1, 31))["expired"])
+
+    def test_too_few_tasks_for_remaining_slots_are_rejected(self):
+        self.config["tasks"] = self.config["tasks"][:22]
+        self.save()
+        with self.assertRaisesRegex(runner.MaintenanceError, "Too few reviewed tasks"):
+            runner.load(self.root)
+        self.config["tasks"] = self.config["tasks"][:23] + [deepcopy(self.config["tasks"][0])]
+        self.config["tasks"][-1].update(id="guide-extra", path="docs/handbook/guide-extra.md")
+        self.save()
+        runner.load(self.root)
+
+    def test_cadence_date_and_slot_bound_cannot_change(self):
+        for value in ("2026-11-25", "2026-11-01", None):
+            with self.subTest(value=value):
+                self.config["daily_from"] = value
+                self.save()
+                with self.assertRaisesRegex(runner.MaintenanceError, "daily cadence"):
+                    runner.load(self.root)
+        self.config["daily_from"] = "2026-11-24"
+        self.state["completed"] = [{"id": "guide-00", "slot": 81}]
+        self.save()
+        with self.assertRaisesRegex(runner.MaintenanceError, "outside"):
+            runner.load(self.root)
+
+    def test_this_repository_has_a_task_for_every_remaining_slot(self):
+        config, state = runner.load(runner.ROOT)
+        done = {record["id"] for record in state["completed"]}
+        used = {record["slot"] for record in state["completed"]}
+        pending = [task for task in config["tasks"] if task["id"] not in done]
+        remaining = [slot for slot in runner.repository_slots(config) if slot >= 11 and slot not in used]
+        self.assertGreaterEqual(len(pending), len(remaining))
+        self.assertEqual(len(remaining), 23 - sum(slot >= 11 for slot in used))
 
     def test_window_crosses_month_and_year_and_stops_at_day_90(self):
         self.assertFalse(runner.calendar(self.config, date(2026, 11, 2))["due"])
         for index in range(3):
             config = {**self.config, "rotation_index": index}
-            self.assertFalse(runner.calendar(config, date(2027, 1, 31))["due"])
+            self.assertEqual(runner.calendar(config, date(2027, 1, 31))["due"], index == 1)
             for end in (date(2027, 2, 1), date(2030, 1, 1)):
                 plan = runner.calendar(config, end)
                 self.assertTrue(plan["expired"])
@@ -188,6 +279,7 @@ class CampaignTests(unittest.TestCase):
         self.assertFalse(any("--force" in args or "--force-with-lease" in args for args in calls))
         commit = next(args for args in calls if "commit" in args)
         self.assertIn(runner.AUTHOR, commit)
+        self.assertIn("Maintenance-Slot: 1/80", commit[-1])
         self.assertIn("user.name=github-actions[bot]", commit)
 
     def test_campaign_cannot_disable_early_and_disables_only_its_workflow(self):

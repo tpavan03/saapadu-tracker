@@ -25,6 +25,9 @@ STATE = ".github/maintenance/state.json"
 BEGIN = "<!-- maintenance:begin -->"
 END = "<!-- maintenance:end -->"
 AUTHOR = "Pavan <132299814+tpavan03@users.noreply.github.com>"
+# Approved switch from alternate-day to daily turns inside the same window.
+DAILY_FROM = "2026-11-24"
+TOTAL_SLOTS = 80
 
 
 class MaintenanceError(Exception):
@@ -84,6 +87,11 @@ def load(root: Path = ROOT) -> tuple[dict, dict]:
         raise MaintenanceError("Changing the campaign window requires review.")
     if config.get("days") != 90 or config.get("interval_days") != 2:
         raise MaintenanceError("Campaign must stop after its approved 90-day window.")
+    if config.get("daily_from") != DAILY_FROM or config["daily_from"] < config["start_date"]:
+        raise MaintenanceError("Changing the daily cadence date requires review.")
+    end = date.fromisoformat(config["start_date"]) + timedelta(days=config["days"])
+    if first_daily_slot(config) + (end - date.fromisoformat(DAILY_FROM)).days != TOTAL_SLOTS:
+        raise MaintenanceError("Campaign slot count changed; review the schedule.")
     if config.get("rotation_size") != 3 or config.get("rotation_index") not in range(3):
         raise MaintenanceError("Invalid repository rotation.")
     expected_index = {"tpavan03/saapadu-tracker": 0,
@@ -92,8 +100,8 @@ def load(root: Path = ROOT) -> tuple[dict, dict]:
     if config["rotation_index"] != expected_index:
         raise MaintenanceError("Repository has an unexpected rotation slot.")
     tasks = config.get("tasks")
-    if not isinstance(tasks, list) or len(tasks) != 15:
-        raise MaintenanceError("Each repository must have fifteen reviewed tasks.")
+    if not isinstance(tasks, list) or not tasks:
+        raise MaintenanceError("Each repository needs a reviewed task queue.")
     ids, paths = set(), set()
     for task in tasks:
         if not re.fullmatch(r"[a-z][a-z0-9-]{2,70}", task.get("id", "")):
@@ -133,21 +141,54 @@ def load(root: Path = ROOT) -> tuple[dict, dict]:
         raise MaintenanceError("A slot may publish at most once.")
     for record in records:
         slot = record.get("slot")
-        if not isinstance(slot, int) or not 0 <= slot < 45 or slot % 3 != config["rotation_index"]:
+        if (not isinstance(slot, int) or not 0 <= slot < TOTAL_SLOTS
+                or slot % 3 != config["rotation_index"]):
             raise MaintenanceError("Completion outside this repository's slots.")
+    # Every daily turn still ahead must have its own reviewed guide waiting.
+    remaining = [slot for slot in repository_slots(config)
+                 if slot >= first_daily_slot(config) and slot not in completed_slots]
+    if len(tasks) - len(records) < len(remaining):
+        raise MaintenanceError(f"Too few reviewed tasks for this repository's remaining slots "
+                               f"({len(tasks) - len(records)} pending, {len(remaining)} needed).")
     index = safe_file(root, INDEX).read_text()
     if index.count(BEGIN) != 1 or index.count(END) != 1 or index.index(BEGIN) > index.index(END):
         raise MaintenanceError("Handbook index markers are missing or ambiguous.")
     return config, state
 
 
+def first_daily_slot(config: dict) -> int:
+    # Alternate-day slots used offsets 0, 2, ... before the daily switch.
+    offset = (date.fromisoformat(config["daily_from"]) - date.fromisoformat(config["start_date"])).days
+    return (offset + config["interval_days"] - 1) // config["interval_days"]
+
+
+def slot_for(config: dict, today: date) -> int | None:
+    start = date.fromisoformat(config["start_date"])
+    daily_from = date.fromisoformat(config["daily_from"])
+    offset = (today - start).days
+    if not 0 <= offset < config["days"]:
+        return None
+    if today < daily_from:
+        if offset % config["interval_days"]:
+            return None
+        return offset // config["interval_days"]
+    return first_daily_slot(config) + (today - daily_from).days
+
+
+def repository_slots(config: dict) -> list[int]:
+    start = date.fromisoformat(config["start_date"])
+    slots = [slot_for(config, start + timedelta(days=day)) for day in range(config["days"])]
+    return [slot for slot in slots
+            if slot is not None and slot % config["rotation_size"] == config["rotation_index"]]
+
+
 def calendar(config: dict, today: date) -> dict:
     start = date.fromisoformat(config["start_date"])
     offset = (today - start).days
     expired = offset >= config["days"]
-    slot = offset // config["interval_days"]
-    due = (0 <= offset < config["days"] and offset % 2 == 0
-           and slot % 3 == config["rotation_index"])
+    slot = slot_for(config, today)
+    due = (slot is not None and 0 <= slot < TOTAL_SLOTS
+           and slot % config["rotation_size"] == config["rotation_index"])
     return {"date": today.isoformat(), "due": due, "expired": expired,
             "slot": slot if due else None,
             "ends_exclusive": (start + timedelta(days=90)).isoformat()}
@@ -187,7 +228,7 @@ def choose(root: Path, config: dict, state: dict, slot: int) -> dict | None:
 
 def index_text(existing: str, config: dict, state: dict) -> str:
     done = {record["id"]: record for record in state["completed"]}
-    lines = ["", f"Published guides: **{len(done)} / 15**.", "",
+    lines = ["", f"Published guides: **{len(done)} / {len(config['tasks'])}**.", "",
              "| Guide | Status |", "| --- | --- |"]
     for task in config["tasks"]:
         title = task["title"].replace("|", "\\|")
@@ -258,14 +299,14 @@ def publish(root: Path, config: dict, state: dict, now: datetime) -> str:
     git(root, "add", "--", *paths)
     message = (f"docs: {task['title']}\n\n"
                f"Maintenance-Task: {task['id']}\n"
-               f"Maintenance-Slot: {plan['slot'] + 1}/45\n"
+               f"Maintenance-Slot: {plan['slot'] + 1}/{TOTAL_SLOTS}\n"
                "Automated-By: personal-maintenance GitHub Actions workflow")
     git(root, "-c", "user.name=github-actions[bot]", "-c",
         "user.email=41898282+github-actions[bot]@users.noreply.github.com",
         "commit", "--author", AUTHOR, "-m", message)
     # A competing push is a safe failure, never a rebase or history rewrite.
     git(root, "push", "origin", "HEAD:main")
-    return f"Published {task['id']} in slot {plan['slot'] + 1}/45: {git(root, 'rev-parse', 'HEAD')}"
+    return f"Published {task['id']} in slot {plan['slot'] + 1}/{TOTAL_SLOTS}: {git(root, 'rev-parse', 'HEAD')}"
 
 
 def disable_expired(config: dict, now: datetime) -> str:
@@ -300,7 +341,7 @@ def main() -> int:
         if args.all_evidence:
             for task in config["tasks"]:
                 check_task(ROOT, task)
-        print(f"Validated 15 reviewed tasks for {config['repository']}.")
+        print(f"Validated {len(config['tasks'])} reviewed tasks for {config['repository']}.")
     elif args.command == "plan":
         plan["already_published"] = any(r["slot"] == plan["slot"] for r in state["completed"])
         if os.environ.get("GITHUB_OUTPUT"):
@@ -313,7 +354,7 @@ def main() -> int:
                 summary.write(f"## Personal maintenance\n\nRepository: `{config['repository']}`\n\n"
                               f"Local date: {plan['date']} (Asia/Kolkata)\n\n"
                               f"Due: {plan['due']}; expired: {plan['expired']}; already published: {plan['already_published']}\n\n"
-                              f"Completed guides: {len(state['completed'])}/15. Campaign stops 1 February 2027.\n")
+                              f"Completed guides: {len(state['completed'])}/{len(config['tasks'])}. Daily turns from 24 November 2026; campaign stops 1 February 2027.\n")
     elif args.command == "publish":
         print(publish(ROOT, config, state, now))
     else:

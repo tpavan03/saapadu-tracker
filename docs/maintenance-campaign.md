@@ -3,10 +3,12 @@
 This repository participates in Pavan's explicitly authorized 90-day documentation campaign, alongside `tpavan03/lakshya-ap-si-prep` and `tpavan03/pavan-portfolio`.
 
 - Campaign starts **3 November 2026** in **Asia/Kolkata**.
-- One repository takes a turn every two days: Saapadu, Exam Prep King, then the portfolio.
-- There are **45 planned publications**, fifteen per repository. The last planned publication is **30 January 2027**.
+- Until **23 November 2026** one repository took a turn every two days: Saapadu, Exam Prep King, then the portfolio (slots 1–11).
+- From **24 November 2026** one repository takes a turn **every day**, in the same rotation. The portfolio has the first daily turn (slot 12 on 24 November).
+- There are **80 planned slots** in the same window: 11 alternate-day slots, then 69 daily slots (23 daily turns per repository). The last planned publication is **31 January 2027** (Exam Prep King, slot 80).
+- Each queue must hold a reviewed guide for every remaining turn of its repository. A slot missed earlier is not replayed.
 - The campaign expires **1 February 2027**. Each workflow then disables itself using its temporary repository token.
-- The workflow wakes at **08:47 and 20:47 IST** daily. The second wake retries a failed eligible day; an already completed slot produces no duplicate commit. Other days do not write files. GitHub can delay scheduled jobs.
+- The workflow wakes at **08:47 and 20:47 IST** daily. The second wake retries a failed eligible day; an already completed slot produces no duplicate commit. Repositories not on turn that day do not write files. GitHub can delay scheduled jobs.
 
 ## What gets published
 
@@ -37,6 +39,6 @@ Use Python 3.11 or newer. Local publication is disabled; live writes require the
 
 ## Failure behavior
 
-Failed source/link checks leave the repository untouched. Push conflicts fail without force-pushing or rewriting another change; the later same-day run starts from the new default branch. There are no empty commits or daily status-only updates. A failed day can therefore mean fewer than 45 publications; inspect failed runs rather than manufacturing a replacement contribution. There is no catch-up burst after downtime.
+Failed source/link checks leave the repository untouched. Push conflicts fail without force-pushing or rewriting another change; the later same-day run starts from the new default branch. There are no empty commits or daily status-only updates. A failed day can therefore mean fewer than 80 publications; inspect failed runs rather than manufacturing a replacement contribution. There is no catch-up burst after downtime.
 
 Future feature work should use normal review and application checks. These publication checks verify the scheduling, source references and allowed documentation changes; they do not replace application tests or establish current external exam rules, hosting prices or medical advice.

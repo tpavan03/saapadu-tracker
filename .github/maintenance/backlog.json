@@ -5,6 +5,7 @@
   "start_date": "2026-11-03",
   "days": 90,
   "interval_days": 2,
+  "daily_from": "2026-11-24",
   "rotation_size": 3,
   "rotation_index": 0,
   "tasks": [
@@ -155,7 +156,7 @@
       "id": "water-sleep-and-steps",
       "title": "Keep daily wellness entries on the right day",
       "path": "docs/handbook/water-sleep-and-steps.md",
-      "body": "# Keep daily wellness entries on the right day\n\nToday includes controls for water, sleep and steps. Check the displayed date before editing: the selected day determines which wellness record is read and updated. The diary's food totals and the wellness signals are related views of the same selected calendar day.\n\nEnter a daily total rather than assuming every edit adds another amount. For example, copying a watch's current step total is different from adding that total again each time you reopen the tracker. Sleep is recorded in hours, and water uses the unit shown by the control.\n\nThese are manual diary entries, not evidence of a connected health-device integration. Changing steps may affect credited activity when movement credit is enabled. It does not create a second workout record or import the watch's underlying exercise history.\n\n## Implementation references\n\n- [lib/screens/today_screen.dart](../../lib/screens/today_screen.dart)\n- [lib/app_state.dart](../../lib/app_state.dart)\n",
+      "body": "# Keep daily wellness entries on the right day\n\nToday includes controls for water, sleep and steps. Check the displayed date before editing: the selected day determines which wellness record is read and updated. The diary's food totals and the wellness signals are related views of the same selected calendar day.\n\nEnter a daily total rather than assuming every edit adds another amount. For example, copying a watch's current step total is different from adding that total again each time you reopen the tracker. Sleep is recorded in hours, and water uses the unit shown by the control.\n\nValues typed here are manual diary entries. Optional Health Connect imports are covered by their own guide; a manual entry is not proof that a device reading was imported. Changing steps may affect credited activity when movement credit is enabled. It does not create a second workout record or import the watch's underlying exercise history.\n\n## Implementation references\n\n- [lib/screens/today_screen.dart](../../lib/screens/today_screen.dart)\n- [lib/app_state.dart](../../lib/app_state.dart)\n",
       "evidence": [
         {
           "path": "lib/screens/today_screen.dart",
@@ -376,6 +377,446 @@
           "contains": [
             "320",
             "390"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "connect-health-connect",
+      "title": "Connect Health Connect for read-only imports",
+      "path": "docs/handbook/connect-health-connect.md",
+      "body": "# Connect Health Connect for read-only imports\n\nOn Android, open **More** and find the **Health Connect** card. It appears only when the device supports Health Connect. If the provider app is missing or needs an update, the card offers **Install Health Connect**; otherwise choose **Connect Health Connect** and review the permission screen. Saapadu asks only for read access to steps, active energy, exercise sessions, sleep, weight and body composition readings. You may allow just some of them; the app syncs whatever was granted.\n\nA sync runs straight after access is granted, again when the app is opened or resumed, and whenever you press **Sync now**. Each sync reads the last 14 days, but never days before this diary first opened version 2.1, so older history keeps its original numbers. An automatic sync waits until the cloud diary has finished reconciling. The card shows the last sync time.\n\nSaapadu never writes to Health Connect. **Stop syncing** ends future reads; values that were already imported stay in the diary. If a read fails, the card reports that the diary is unchanged, and you can try again later. Manage per-type permissions in the Health Connect settings rather than in Saapadu.\n\n## Implementation references\n\n- [lib/screens/more_screen.dart](../../lib/screens/more_screen.dart)\n- [lib/app_state.dart](../../lib/app_state.dart)\n- [lib/health_connect.dart](../../lib/health_connect.dart)\n- [lib/platform/health_connect_android.dart](../../lib/platform/health_connect_android.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/screens/more_screen.dart",
+          "contains": [
+            "Install Health Connect",
+            "Connect Health Connect",
+            "'Sync now'",
+            "'Stop syncing'",
+            "Saapadu never writes to Health Connect."
+          ]
+        },
+        {
+          "path": "lib/app_state.dart",
+          "contains": [
+            "Reads the last 14 days (never earlier than the v2.1 start date).",
+            "Future<bool> connectHealthConnect",
+            "Your diary is unchanged.",
+            "if (await _waitForCloudIdle()) await syncHealthConnect();"
+          ]
+        },
+        {
+          "path": "lib/platform/health_connect_android.dart",
+          "contains": [
+            "The user may allow only some types; sync whatever was granted.",
+            "HealthDataType.SLEEP_SESSION"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "health-connect-manual-values-win",
+      "title": "Understand how imported health data meets your own entries",
+      "path": "docs/handbook/health-connect-manual-values-win.md",
+      "body": "# Understand how imported health data meets your own entries\n\nHealth Connect values are stored beside your manual entries rather than over them. On Today, the steps and sleep tiles show your own total when it is above zero and the imported value otherwise; imported figures are labelled, for example **steps · imported**. Editing such a tile notes that your entry wins. Entering 0 for steps or sleep lets the imported value show again.\n\nImported weights are accepted only within a plausible range, and a weight you entered yourself on a date is never replaced. When the newest weight is imported, it also refreshes the profile's current weight. Imported exercise sessions appear in the activity list with **(Health Connect)** in the name. They cannot be deleted inside Saapadu; change them in Health Connect and the next sync replaces imported sessions in the window it read.\n\nTo avoid counting one session twice, imported workouts only count on a day that has no manual workouts; the list marks them as not counted otherwise. Movement credit still uses the largest single movement source rather than adding steps, workouts and watch calories together. All of these remain estimates.\n\n## Implementation references\n\n- [lib/app_state.dart](../../lib/app_state.dart)\n- [lib/models.dart](../../lib/models.dart)\n- [lib/health_import.dart](../../lib/health_import.dart)\n- [lib/screens/today_screen.dart](../../lib/screens/today_screen.dart)\n- [lib/screens/workout_screen.dart](../../lib/screens/workout_screen.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/models.dart",
+          "contains": [
+            "int get effectiveSteps => steps > 0 ? steps : (importedSteps ?? 0);",
+            "bool get sleepImported"
+          ]
+        },
+        {
+          "path": "lib/screens/today_screen.dart",
+          "contains": [
+            "'steps · imported'",
+            "Imported from Health Connect; your entry wins"
+          ]
+        },
+        {
+          "path": "lib/app_state.dart",
+          "contains": [
+            "Manual workouts win: imported Health Connect sessions only count on a",
+            "kg >= 30 && kg <= 350",
+            "existing.every((w) => w.imported)"
+          ]
+        },
+        {
+          "path": "lib/screens/workout_screen.dart",
+          "contains": [
+            "not counted (manual workouts win)",
+            "Imported from Health Connect; edit it there"
+          ]
+        },
+        {
+          "path": "lib/health_import.dart",
+          "contains": [
+            "(Health Connect)",
+            "are replaced, so a session deleted in Health Connect disappears too."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "meal-and-evening-reminders",
+      "title": "Turn on meal and evening log reminders",
+      "path": "docs/handbook/meal-and-evening-reminders.md",
+      "body": "# Turn on meal and evening log reminders\n\nReminders are available in the Android app and are all off by default. While none are enabled, Today shows a one-time **Gentle reminders?** card. **Turn on** asks for notification permission and enables the breakfast, lunch and dinner reminders, the evening check and the weekly weigh-in. **Choose** opens the settings, and **Not now** hides the card. Later, use **More → Reminders**.\n\nEach meal reminder is skipped once that meal has an entry for the day. The evening check only fires when the day looks incomplete: fewer than two of breakfast, lunch and dinner logged, or less than 40% of the calorie target. Turn a reminder on to see its time, then tap **Around HH:MM** to change it. Delivery is deliberately inexact to spare the battery, so expect a reminder near the chosen time rather than on the minute.\n\nReminders are planned a few days ahead and re-planned when the diary changes or the app opens. The settings belong to this phone and are not part of the diary backup. If Android blocks notifications for Saapadu, the app says so; allow them in Android settings.\n\n## Implementation references\n\n- [lib/reminders.dart](../../lib/reminders.dart)\n- [lib/reminder_service.dart](../../lib/reminder_service.dart)\n- [lib/screens/reminder_settings_screen.dart](../../lib/screens/reminder_settings_screen.dart)\n- [lib/screens/today_screen.dart](../../lib/screens/today_screen.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/reminders.dart",
+          "contains": [
+            "Everything is off by default.",
+            "They are not part of the diary backup",
+            "bool dayLooksIncomplete",
+            "calories < target * .4",
+            "ReminderSettings recommended()"
+          ]
+        },
+        {
+          "path": "lib/screens/today_screen.dart",
+          "contains": [
+            "Gentle reminders?",
+            "child: const Text('Not now')"
+          ]
+        },
+        {
+          "path": "lib/screens/reminder_settings_screen.dart",
+          "contains": [
+            "Only if breakfast is not logged",
+            "log looks incomplete",
+            "label: Text('Around ${timeLabel(toggle.minutes)}')"
+          ]
+        },
+        {
+          "path": "lib/reminder_service.dart",
+          "contains": [
+            "AndroidScheduleMode.inexactAllowWhileIdle"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "weigh-in-fasting-supplement-reminders",
+      "title": "Set weigh-in, fasting and supplement reminders",
+      "path": "docs/handbook/weigh-in-fasting-supplement-reminders.md",
+      "body": "# Set weigh-in, fasting and supplement reminders\n\nOpen **More → Reminders** for the remaining reminder types. **Weekly weigh-in** fires around the chosen time on the day your next weight check-in is due. If a check-in is already due, it fires today, or tomorrow when today's time has passed. When no tape measurement has been saved in the last two weeks, its message also suggests measuring waist, hip and chest.\n\n**Fasting** has two parts. While no fasting window is running, it reminds you at the chosen start time. While a window is active, it sends a separate alert when the target time is reached; you still end and save the window yourself in the app. Reminders cannot tell whether you actually ate, so treat them as prompts, not records.\n\n**Supplements** is a master switch. Each supplement keeps its own reminder time, set in its edit dialog, and a reminder is skipped once that supplement is ticked off for the day. Saving a supplement with its reminder turned on also turns the master switch on. If some supplements have reminders but the switch is off, the Supplements screen links back to Reminders.\n\n## Implementation references\n\n- [lib/reminders.dart](../../lib/reminders.dart)\n- [lib/screens/reminder_settings_screen.dart](../../lib/screens/reminder_settings_screen.dart)\n- [lib/screens/supplements_screen.dart](../../lib/screens/supplements_screen.dart)\n- [lib/app_state.dart](../../lib/app_state.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/reminders.dart",
+          "contains": [
+            "'Weekly check-in'",
+            "measure waist, hip and chest too (every two weeks).",
+            "'Start your fasting window?'",
+            "'Fasting window complete'",
+            "taken.contains(s.id)"
+          ]
+        },
+        {
+          "path": "lib/screens/reminder_settings_screen.dart",
+          "contains": [
+            "tape measurements every two weeks",
+            "Uses each supplement"
+          ]
+        },
+        {
+          "path": "lib/screens/supplements_screen.dart",
+          "contains": [
+            "Supplement reminders are off in Reminders",
+            "state.reminderSettings.copyWith(supplements: true)"
+          ]
+        },
+        {
+          "path": "lib/app_state.dart",
+          "contains": [
+            "measurementsDue: measurementsDue"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "quick-log-recent-and-frequent",
+      "title": "Log again from recent and frequent foods",
+      "path": "docs/handbook/quick-log-recent-and-frequent.md",
+      "body": "# Log again from recent and frequent foods\n\nOpen the food picker with an empty search and the **All** category. Above the full list it shows **My combos**, then **Recent** and **Frequent**. Recent lists the foods you logged most recently, without repeats. Frequent lists foods logged at least twice in the last 60 days that are not already in Recent. Typing a search or choosing a category hides these sections.\n\nTapping a recent or frequent food opens the usual serving sheet, so check the quantity and meal before saving; the picker does not reuse the previous amount automatically.\n\nFrom a diary meal's **⋮** menu you can also copy whole meals. **Copy yesterday's** meal adds the same foods and servings from the previous day. **Repeat last** meal finds the most recent earlier date with entries in that meal and asks for confirmation before adding them. Both add to the selected day. If a fast is running today and the copied foods contain calories, the app first asks whether to end the fast at this entry time or keep the timer. Copied entries are ordinary diary entries afterwards, so edit or delete any item that differs today.\n\n## Implementation references\n\n- [lib/screens/food_search_screen.dart](../../lib/screens/food_search_screen.dart)\n- [lib/screens/diary_screen.dart](../../lib/screens/diary_screen.dart)\n- [lib/app_state.dart](../../lib/app_state.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/screens/food_search_screen.dart",
+          "contains": [
+            "query.trim().isEmpty && category == 'All'",
+            "_sectionLabel('Recent')",
+            "_sectionLabel('Frequent')"
+          ]
+        },
+        {
+          "path": "lib/app_state.dart",
+          "contains": [
+            "Foods most recently logged, newest first, without repeats.",
+            "Foods logged most often over the last 60 days.",
+            "counts[id]! >= 2"
+          ]
+        },
+        {
+          "path": "lib/screens/diary_screen.dart",
+          "contains": [
+            "Copy yesterday",
+            "Repeat last $meal",
+            "End fast at this entry time?"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "save-and-reuse-meal-combos",
+      "title": "Save a repeated meal as a combo",
+      "path": "docs/handbook/save-and-reuse-meal-combos.md",
+      "body": "# Save a repeated meal as a combo\n\nLog a meal you eat often, then open that meal's **⋮** menu in the diary and choose **Save as combo**. The editor suggests a name such as \"My usual breakfast\", a usual meal, and each item with its servings. Adjust the servings, remove items that do not belong (at least one must remain), then press **Save combo**.\n\nTo use it, open the food picker with an empty search. **My combos** lists each combo with its item count, calories and protein; **Log** adds all its items in one step. The items go to the meal the picker was opened for, which may differ from the combo's usual meal. If a fast is running today and the combo has calories, you are asked whether to end the fast first.\n\nManage combos in **More → My combos**: tap one to edit it, or delete it. Deleting a combo does not change diary entries already logged from it. Combos are included in the diary backup. Their calorie figures are built from the saved items, so they remain estimates like any other food entry.\n\n## Implementation references\n\n- [lib/screens/combos_screen.dart](../../lib/screens/combos_screen.dart)\n- [lib/screens/diary_screen.dart](../../lib/screens/diary_screen.dart)\n- [lib/screens/food_search_screen.dart](../../lib/screens/food_search_screen.dart)\n- [lib/app_state.dart](../../lib/app_state.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/screens/diary_screen.dart",
+          "contains": [
+            "value: 'combo', child: Text('Save as combo')"
+          ]
+        },
+        {
+          "path": "lib/screens/combos_screen.dart",
+          "contains": [
+            "name: 'My usual ${meal.toLowerCase()}'",
+            "labelText: 'Usual meal'",
+            "tooltip: 'Remove from combo'",
+            "Your diary entries stay as they are."
+          ]
+        },
+        {
+          "path": "lib/screens/food_search_screen.dart",
+          "contains": [
+            "_sectionLabel('My combos')",
+            "state.logCombo(combo, meal: widget.initialMeal)",
+            "This combo contains calories."
+          ]
+        },
+        {
+          "path": "lib/app_state.dart",
+          "contains": [
+            "'combos': combos.map((e) => e.toJson()).toList(),"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "track-daily-supplements",
+      "title": "Track supplements and their daily tick-offs",
+      "path": "docs/handbook/track-daily-supplements.md",
+      "body": "# Track supplements and their daily tick-offs\n\nUse **Add** on the Today **Supplements** card, or **More → Supplements**. Give each item a name, an optional dose, a time slot (Morning, After workout or Night), and calories and protein per dose. Leave both at 0 for pills and vitamins. An optional reminder can be set in the same dialog.\n\nTick an item on Today to record it for the selected day; untick it to remove that record. A tick-off with calories or protein, such as a whey scoop, adds to that day's totals. If the same item, matched by name, is also logged as a food that day, it is counted only once and Today shows it as already in the food log. Each tick-off keeps the values it had when you ticked it, so editing a dose later does not rewrite earlier days.\n\nThe Supplements screen shows a streak and how many days this month an item was taken. Removing a supplement archives it, so past tick-offs keep their name. This is a personal log, not dosing advice; follow your clinician or the product label for what to take.\n\n## Implementation references\n\n- [lib/screens/supplements_screen.dart](../../lib/screens/supplements_screen.dart)\n- [lib/screens/today_screen.dart](../../lib/screens/today_screen.dart)\n- [lib/app_state.dart](../../lib/app_state.dart)\n- [lib/insights.dart](../../lib/insights.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/screens/supplements_screen.dart",
+          "contains": [
+            "Leave 0 for pills and vitamins.",
+            "labelText: 'kcal per dose'",
+            "taken ${stats.takenDays} of ${stats.monthDays} days this month"
+          ]
+        },
+        {
+          "path": "lib/models.dart",
+          "contains": [
+            "const supplementSlots = ['Morning', 'After workout', 'Night'];",
+            "Deleted supplements are archived so past tick-offs keep their name."
+          ]
+        },
+        {
+          "path": "lib/app_state.dart",
+          "contains": [
+            "List<SupplementIntake> countedIntakesFor",
+            "copyWith(archived: true)",
+            "Future<void> toggleSupplement"
+          ]
+        },
+        {
+          "path": "lib/screens/today_screen.dart",
+          "contains": [
+            "'already in food log'"
+          ]
+        },
+        {
+          "path": "lib/insights.dart",
+          "contains": [
+            "SupplementStats supplementStats"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "protein-per-meal-nudge",
+      "title": "Read protein per meal and its dismissible tip",
+      "path": "docs/handbook/protein-per-meal-nudge.md",
+      "body": "# Read protein per meal and its dismissible tip\n\nEach diary meal header shows that meal's calories and grams of protein, added up from its logged entries. Supplement tick-offs count toward the day's protein total but are not part of any single meal's figure.\n\nFor breakfast, lunch or dinner with at least one entry and less than about 20 g of protein, the meal card shows a short tip with the approximate gap and a few familiar additions, such as curd, dal, paneer, eggs or sundal. Snacks and empty meals do not get a tip. About 20 g is a simple rule of thumb used by the app, not a personal requirement, and the tip disappears once the meal's logged protein reaches it.\n\nPress the close button to dismiss the tip. A dismissal applies only to that meal on that date, and dismissals older than about three weeks are dropped from this device. If a tip looks wrong, first check the serving amounts and the protein values of any custom foods in the meal. This per-meal tip is separate from the next-meal prompts on Today.\n\n## Implementation references\n\n- [lib/insights.dart](../../lib/insights.dart)\n- [lib/screens/diary_screen.dart](../../lib/screens/diary_screen.dart)\n- [lib/app_state.dart](../../lib/app_state.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/insights.dart",
+          "contains": [
+            "const lowProteinMealGrams = 20.0;",
+            "const mainMeals = ['Breakfast', 'Lunch', 'Dinner'];",
+            "short of ~20 g protein",
+            "String? proteinNudge"
+          ]
+        },
+        {
+          "path": "lib/screens/diary_screen.dart",
+          "contains": [
+            "tooltip: 'Dismiss protein tip'",
+            "'${state.selectedKey}|protein|$meal'",
+            "g protein'"
+          ]
+        },
+        {
+          "path": "lib/app_state.dart",
+          "contains": [
+            "Future<void> dismissNudge",
+            "Duration(days: 21)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "water-four-litre-default",
+      "title": "Understand the 4 L water default",
+      "path": "docs/handbook/water-four-litre-default.md",
+      "body": "# Understand the 4 L water default\n\nFrom the day this diary first opened version 2.1, each day counts 4000 ml of water unless you change it. Today marks such a day as **ml water (default)** and explains that it is counted as 4 L. The figure is an assumption for convenience, not a measurement, so adjust it only when you drank noticeably less or more.\n\nThe **−250**, **+250** and **+500** buttons adjust from the value shown, so pressing −250 on a default day records 3750 ml. Tapping the water tile asks for the day's total. Any edit, including an explicit 0, is kept for that day. **Reset to 4 L** appears on edited days and returns them to the default.\n\nDays before that first 2.1 date show exactly what was stored, including 0, so earlier history is not reinterpreted. The start date is saved with the diary and its backup. Restoring a backup can move it earlier, never later. When checking a restored diary, compare a few days on both sides of that date before assuming water history changed.\n\n## Implementation references\n\n- [lib/models.dart](../../lib/models.dart)\n- [lib/app_state.dart](../../lib/app_state.dart)\n- [lib/screens/today_screen.dart](../../lib/screens/today_screen.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/models.dart",
+          "contains": [
+            "static const int defaultMl = 4000;",
+            "class WaterDefaults"
+          ]
+        },
+        {
+          "path": "lib/screens/today_screen.dart",
+          "contains": [
+            "'ml water (default)'",
+            "Counted as 4 L by default. Adjust only if you drank less or more.",
+            "for (final ml in const [-250, 250, 500])",
+            "Reset to 4 L"
+          ]
+        },
+        {
+          "path": "lib/app_state.dart",
+          "contains": [
+            "First day that counts 4 L water by default",
+            "remoteStart.compareTo(waterDefaultStart!) < 0",
+            "Future<void> resetWater"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "adjust-quantity-with-serving-editor",
+      "title": "Set a precise quantity with the serving editor",
+      "path": "docs/handbook/adjust-quantity-with-serving-editor.md",
+      "body": "# Set a precise quantity with the serving editor\n\nThe add-food sheet and diary entry edits share one quantity control. Drag the slider, or type into **Servings**, which accepts 0.1 to 10. When the food has a serving weight, a **Grams / ml** field appears as well. The two fields stay in sync: typing grams converts them to servings using the food's serving weight, and changing servings updates the grams.\n\nValues are rounded to two decimal places and kept within the 0.1 to 10 range. Under the fields, the calories, protein, carbohydrates, fat and fibre update as you go, so you can check the total before saving. They are scaled from the food's per-serving values and are estimates.\n\nTo correct an amount already in the diary, tap the entry and use the same editor, then press **Save quantity**. Only the servings change; the food and meal stay the same. If the amount you ate is outside the range, or the serving weight does not match how you measure the food, a custom food with a clearer serving is easier to use than repeated large multipliers.\n\n## Implementation references\n\n- [lib/widgets/serving_editor.dart](../../lib/widgets/serving_editor.dart)\n- [lib/insights.dart](../../lib/insights.dart)\n- [lib/screens/food_search_screen.dart](../../lib/screens/food_search_screen.dart)\n- [lib/screens/diary_screen.dart](../../lib/screens/diary_screen.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/widgets/serving_editor.dart",
+          "contains": [
+            "labelText: 'Servings', helperText: '0.1 – 10'",
+            "labelText: 'Grams / ml'",
+            "child: const Text('Save quantity')",
+            "_nutrient('Fiber', food.fiberG * servings)"
+          ]
+        },
+        {
+          "path": "lib/insights.dart",
+          "contains": [
+            "static const double max = 10;",
+            "static double? servingsFromGrams",
+            "Rounds to 2 decimals so stored values stay readable."
+          ]
+        },
+        {
+          "path": "lib/screens/diary_screen.dart",
+          "contains": [
+            "editServingsSheet(context, entry)",
+            "state.updateFoodServings(entry.id, value)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "body-measurements-and-scale-readings",
+      "title": "Add tape measurements and smart-scale readings",
+      "path": "docs/handbook/body-measurements-and-scale-readings.md",
+      "body": "# Add tape measurements and smart-scale readings\n\nWhen saving a weight check-in, expand **Measurements & smart scale (optional)**. It holds waist, hip and chest, plus smart-scale fields such as body fat, muscle mass, bone mass, body water, visceral fat, BMR, metabolic age and lean body mass. Leave blank anything you do not track; clearing a field removes that value. A value that is not a positive number in range is flagged with **Check value**.\n\nWith Health Connect connected, matching readings can arrive automatically and are marked **Health Connect** under the field. Imports only fill empty fields or replace earlier imports. A value you type yourself for the same date replaces the imported one.\n\nProgress shows a **Body measurements** card with the latest waist, hip, chest, body fat and muscle readings and their change across recent check-ins. It also notes when tape measurements are due; every two weeks is enough. Home scales vary with water and timing, so compare trends week to week. These readings do not change calorie targets.\n\n## Implementation references\n\n- [lib/screens/weight_check_in_screen.dart](../../lib/screens/weight_check_in_screen.dart)\n- [lib/models.dart](../../lib/models.dart)\n- [lib/screens/progress_screen.dart](../../lib/screens/progress_screen.dart)\n- [lib/app_state.dart](../../lib/app_state.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/screens/weight_check_in_screen.dart",
+          "contains": [
+            "Measurements & smart scale (optional)",
+            "Your own entries replace Health Connect readings for the same date.",
+            "'Check value'",
+            "helperText: imported ? 'Health Connect' : null"
+          ]
+        },
+        {
+          "path": "lib/models.dart",
+          "contains": [
+            "'visceralFat': ('Visceral fat', 'rating'),",
+            "Imported values fill empty fields or replace earlier imports only."
+          ]
+        },
+        {
+          "path": "lib/screens/progress_screen.dart",
+          "contains": [
+            "Text('Body measurements'",
+            "Tape measurements are due",
+            "These readings do not change your calorie target."
+          ]
+        },
+        {
+          "path": "lib/app_state.dart",
+          "contains": [
+            "bool get measurementsDue",
+            "inDays >= 14"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "logging-streak-and-weekly-summary",
+      "title": "Read the logging streak and weekly summary",
+      "path": "docs/handbook/logging-streak-and-weekly-summary.md",
+      "body": "# Read the logging streak and weekly summary\n\nToday shows a **logging streak** chip once you have one. It counts consecutive days with at least one food entry, ending today. If today has nothing logged yet, the streak still counts up to yesterday, so a morning check does not look broken. Water defaults, supplement tick-offs, weights and steps do not extend it; only food entries do.\n\nProgress has a **This week** card covering the last seven days, including today. **Days logged** counts days with food entries. Average calories against the average target, and average protein, use logged days only, so a day you skipped is not read as zero intake. **Weight change** compares the latest reading in the week with the latest one before it, or with the first in the week, and shows a dash when there are not enough readings. Steps show a total and an average over days that have a step value, including imported ones.\n\nThe summary is calculated from the diary each time it is shown, so correcting an old entry updates it. Treat the averages as a rough weekly picture rather than a precise measure of intake.\n\n## Implementation references\n\n- [lib/insights.dart](../../lib/insights.dart)\n- [lib/app_state.dart](../../lib/app_state.dart)\n- [lib/screens/today_screen.dart](../../lib/screens/today_screen.dart)\n- [lib/screens/progress_screen.dart](../../lib/screens/progress_screen.dart)\n",
+      "evidence": [
+        {
+          "path": "lib/insights.dart",
+          "contains": [
+            "logged yet the streak still counts up to yesterday",
+            "Averages over logged days only, so an unlogged day is not read as 0 kcal.",
+            "WeeklySummary weeklySummary"
+          ]
+        },
+        {
+          "path": "lib/app_state.dart",
+          "contains": [
+            "int get loggingStreakDays => loggingStreak(logs, DateTime.now());",
+            "logged: logs.any((e) => e.date == key)",
+            ".effectiveSteps,"
+          ]
+        },
+        {
+          "path": "lib/screens/today_screen.dart",
+          "contains": [
+            "-day logging streak"
+          ]
+        },
+        {
+          "path": "lib/screens/progress_screen.dart",
+          "contains": [
+            "Text('This week'",
+            "averages use logged days",
+            "('Days logged', '${w.daysLogged} of 7')"
           ]
         }
       ]
