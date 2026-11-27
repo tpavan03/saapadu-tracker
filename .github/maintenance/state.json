@@ -35,6 +35,13 @@
       "published_date": "2026-11-25",
       "published_at": "2026-11-24T23:54:57.518951+00:00",
       "source_commit": "dc891ca15647cb8523f9925d30536db55adc93b7"
+    },
+    {
+      "id": "create-custom-foods",
+      "slot": 15,
+      "published_date": "2026-11-28",
+      "published_at": "2026-11-27T23:29:18.055590+00:00",
+      "source_commit": "489e7a389c59761f1e5c7865e5cf6163f4532457"
     }
   ]
 }

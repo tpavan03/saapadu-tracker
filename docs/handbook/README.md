@@ -3,7 +3,7 @@
 Practical guides to using and maintaining the current app. This index is populated as source-checked guides are published. See [the maintenance campaign](../maintenance-campaign.md) for its scope, schedule and stop controls.
 
 <!-- maintenance:begin -->
-Published guides: **5 / 27**.
+Published guides: **6 / 27**.
 
 | Guide | Status |
 | --- | --- |
@@ -12,7 +12,7 @@ Published guides: **5 / 27**.
 | [Record and correct dated weight check-ins](dated-weight-checkins.md) | Published 2026-11-15 |
 | [Understand requested and estimated goal dates](requested-and-estimated-dates.md) | Published 2026-11-21 |
 | [Find familiar foods and choose servings](search-food-and-servings.md) | Published 2026-11-25 |
-| Create a reusable custom food | Queued |
+| [Create a reusable custom food](create-custom-foods.md) | Published 2026-11-28 |
 | Keep daily wellness entries on the right day | Queued |
 | Understand movement credit without double counting | Queued |
 | Log workouts with duration and intensity | Queued |
